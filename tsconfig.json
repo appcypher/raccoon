@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+		"strict": true,
+		"moduleResolution": "node",
+		"module": "es2020",
+		"lib": ["es2020", "DOM"],
+		"target": "es2020",
+    "outDir": "dist"
+  },
+	"include": ["src/**/*.d.ts", "src/**/*.ts"]
+}

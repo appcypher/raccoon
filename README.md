@@ -8,9 +8,8 @@
 
 ##
 
-`compiler_workflow`
- takes a **workflow graph** (`.wg`) as input and runs a semantic analysis phase and generates JavaScript or WebAssembly code and source maps.
+`compiler_workflow` takes a **workflow graph** (`.wg`) as input, runs semantic analysis on it and generates JavaScript or WebAssembly code and source maps.
 
 The workflow graph is uses typed language and its semantics is based on Raccoon.
 
-When generating wasm code, any JavaScript module dependency is accessed via the host interface `gigamono/js_call` which is expected to be implemented by a gigamono implementation.
+When generating wasm code, any JavaScript module dependency is accessed via the host interface `gigamono/js_call` which is expected to be implemented by a Gigamono implementation.

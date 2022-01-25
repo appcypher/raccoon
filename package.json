@@ -1,0 +1,21 @@
+{
+  "name": "compiler_workflow",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">     <a href=\"#\" target=\"_blank\">         <img src=\"https://raw.githubusercontent.com/appcypher/gigamono-assets/main/avatar-gigamono-boxed.png\" alt=\"Gigamono Logo\" width=\"140\" height=\"140\"></img>     </a> </div>",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "cli": "node dist/cli.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gigamono/compiler_workflow.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gigamono/compiler_workflow/issues"
+  },
+  "homepage": "https://github.com/gigamono/compiler_workflow#readme"
+}
