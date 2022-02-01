@@ -1,5 +1,5 @@
 [package]
-name = "compiler_workflow"
+name = "vertex"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,5 +9,5 @@ edition = "2021"
 
 
 [[bin]]
-name = "compile_workflow"
+name = "vertex"
 path = "bin/cli.rs"
