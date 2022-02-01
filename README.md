@@ -4,7 +4,7 @@
     </a>
 </div>
 
-<h1 align="center">Compiler Workflow</h1>
+<h1 align="center">Vertex</h1>
 
 `vertex` takes a graph-based syntax (`.vt`) as input, runs semantic analysis on it and generates JavaScript or WebAssembly code and source maps.
 
