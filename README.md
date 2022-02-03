@@ -10,7 +10,7 @@
 
 **Raccoon will not maintain full syntactic and semantic compatibility with Python**. Several dynamic elements known of Python are not available in Raccoon. While Raccoon prioritizes a design that benefits static analysis, it still allows Python's level of flexibility where statically determinable.
 
-Raccoon compiler implementation generates WebAssembly and JavaScript code and optionally supports a custom host functionality for allowing WebAssembly to call JavaScript code and vice versa.
+Raccoon compiler implementation generates WebAssembly and JavaScript code.
 
 Below is an example of what Raccoon looks like:
 
