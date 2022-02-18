@@ -10,21 +10,25 @@
 /// As noted¹ by some, certain lexer errors may be caused by invalid syntax, but the lexer error
 /// shows first because it comes before the parser.
 ///
-/// In addition to lex function becoming a generator, may also change Parser.code to an generator to be gotten on demand.
+/// In addition to lex function becoming an iterator, may also change Parser.code to an iterator to be gotten on demand.
 ///
 /// This has the benefit of not keeping everything in memory in case lexer / parser fails early
 ///
 /// 1. https://medium.com/@gvanrossum_83706/building-a-peg-parser-d4869b5958fb#2a80
+#[derive(Debug)]
 pub struct Lexer {}
 
 /// Represents a valid Raccoon token.
+#[derive(Debug, Clone)]
 pub struct Token {}
 
 /// Holds top-level indentation information as well as indentation information of code in brackets
+#[derive(Debug)]
 pub struct Indentation {}
 
 /// Represents a block of code introduced by a colon and an indent within brackets.
 /// A block can be the body content of a lambda or a match expression.
+#[derive(Debug)]
 pub struct Block {}
 
 /// The valid kinds of token.
@@ -55,7 +59,6 @@ pub enum IndentKind {
     Space,
 }
 
-
 impl Lexer {
     /// Creates a new `Lexer`.
     pub fn new(_code: &str) -> Self {
@@ -66,7 +69,5 @@ impl Lexer {
 #[cfg(test)]
 mod test {
     #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
+    fn it_works() {}
 }
