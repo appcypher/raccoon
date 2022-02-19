@@ -58,7 +58,7 @@ impl<'a> Lexer<'a> {
     // Returns the next character in code without advancing the cursor position.
     fn peek_char(&mut self, offset: Option<u32>) -> Option<char> {
         let offset = offset.unwrap_or(0);
-        // TODO(appcypher) Investigate a better way without cloning.
+        // TODO(appcypher): Investigate a better way without cloning.
         // Tried `self.chars.by_ref().peekmore().peek_nth(offset as usize).cloned()` using peekmore lib but it still consumes the iterator.
         self.chars.clone().nth(offset as usize)
     }
