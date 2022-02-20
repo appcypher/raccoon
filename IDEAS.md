@@ -1,4 +1,5 @@
-### Interface Contract
+
+# Interface Contract
 
 The body of an untyped function defines its `interface contract`.
 
@@ -108,9 +109,9 @@ Here `iterate_gift` has the following `interface contract`:
 
 As mentioned before, what you do with the arguments of an untyped function determines the `interface contract` and the kind of monormorphisation allowed.
 
-##
 
-### Common Fields
+
+# Common Fields
 
 We have seen above that the methods you use with an argument determine the interface contract of an untyped function. This is also true for the fields of an argument.
 
@@ -134,7 +135,10 @@ Notice the `impl [name]` syntax. It used to refer to a field. `impl func.x` is u
 
 Also notice that we use `T: any U.0` syntax for fields just like arguments because they are values that must also conform to some implementation.
 
-## Additional Example
+
+
+
+# Additional Example
 
 ```py
 class Point:
@@ -190,9 +194,9 @@ print(point1 + point2)
 
     let tmp = __plus__#1(point1, point2) // Object Instantiation. __plus__#1(Point, Point) an instantiation made here.
 
-##
 
-### Generics
+
+# Generics
 
 Generics are useful for restricting an interface contract further because it allows certain conditional semantics that a developer may desire.
 
@@ -208,9 +212,9 @@ def any_common_elements(l: T, r: U) -> bool:
 any_common_elements([1, 2, 3], {4, 5, 3}) # true
 ```
 
-##
 
-### Intersection Types and Type Safety
+
+# Intersection Types and Type Safety
 
 Raccoon handles type safety differently. For example, when a function can return multiple types at runtime, Raccoon returns an intersection of both types.
 
@@ -239,7 +243,10 @@ double = x + x
 
 In places where there can be potentially many types, we use dynamic dispatch. This is true for container types.
 
-## Union Classes
+
+
+
+# Union Classes
 
 Union classes are analogous to C union types. Their memory layout is determined by their largest field.
 
@@ -252,7 +259,10 @@ JSNumber.float = 2.0
 print('0x{0:x}'.format(JSNumber.int)) # 0x4000000000000000
 ```
 
-## Enum Classes
+
+
+
+# Enum Classes
 
 Enum classes are intersection types and their variants normal classes.
 
@@ -325,9 +335,9 @@ enum class Optional[T]:
 
 https://rust-lang.github.io/unsafe-code-guidelines/layout/enums.html
 
-##
 
-### Dynamic Dispatch
+
+# Dynamic Dispatch
 
 ```py
 givers = [StringGiver(), IntGiver()]
@@ -368,9 +378,6 @@ The caveat however is that, operations like the one below, that you would expect
 ```py
 double = ls[0] + ls[0] # Error type of ls[0] can either be str or int and there is no __plus__(int, str) or __plus__(str, int)
 ```
-
-##
-
 :warning: This section is unfinished and contains a rough idea of how I want things to work.
 
 You may wonder how the compiler determines the type of a container that stores values of different types.
@@ -435,18 +442,18 @@ new_copy = copy_first(values) # def copy_first(dyn _) -> int & str
 
 This works because at the instantiation of `copy_first(values)`, the compiler still remembers the types behind `values: dyn _`. So it is able to check the return types of all the methods of `int & str`.
 
-##
 
-### Memory Layouting
+
+# Memory Layouting
 
 Raccoon's memory layouting is mostly inspired by Rust's.
 
 https://docs.google.com/presentation/d/1q-c7UAyrUlM-eZyTo1pd8SZ0qwA_wYxmPZVOQkoDmH4/edit#slide=id.p
 https://github.com/pretzelhammer/rust-blog/blob/master/posts/sizedness-in-rust.md
 
-##
 
-### Type Casting
+
+# Type Casting
 
 Most times the compiler won't be able to determine the type of variant or `dyn` object at compile-time. So it is useful to have type casting functions.
 
@@ -462,7 +469,10 @@ variant = get_color()
 red = cast[PrimaryColor.Red](variant) # Raises an error if type cannot be casted.
 ```
 
-## ref vs val
+
+
+
+# ref vs val
 
 By default primitive types are passed around by value and complex types by reference.
 
@@ -491,7 +501,10 @@ def who_am_i(val person):
 who_am_i(john) # function takes a shallow copy of john's stack-livable part.
 ```
 
-## Stack vs Heap Allocation
+
+
+
+# Stack vs Heap Allocation
 
 Unlike other languages, by default the _stack-livable part of a ref object_ are stored in the heap, but Raccoon optimizes for the stack, so these parts are stored on the stack where possible.
 
@@ -538,7 +551,10 @@ def get_person() -> Person:
 
 This is why the compiler does not have a way to force things to stay on the stack.
 
-## Sync and Send
+
+
+
+# Sync and Send
 
 The concept of `Send` and `Sync` is borrowed from Rust.
 
@@ -573,9 +589,9 @@ class Thread:
         # ...
 ```
 
-##
 
-### Function Abstract Classes
+
+# Function Abstract Classes
 
 Each function and closure instantiation has a unique concrete type. But they all implement abstract classes based on the instantiation signature.
 
@@ -596,7 +612,10 @@ async def timeout(seconds: int, cb: def() -> void):
 
 Note the `def` part in the signature. This lets us prevent the ambiguous signature `cb: ()` which can be mistaken for a tuple.
 
-## Closures and Captures
+
+
+
+# Closures and Captures
 
 Closures are funtions until they capture their environment. Closures that capture their environments have a different signature.
 
@@ -637,9 +656,9 @@ lis = [1, 2, 3].iter().map(UniqueClosure(arr, lambda capture, i: sum(capture) + 
 
 This idea of desugaring to concrete types is also explored with coroutines and async/await.
 
-##
 
-### Exceptions vs Result Enums
+
+# Exceptions vs Result Enums
 
 Raccoon supports execeptions just because users coming from Python will have the presumption that Raccoon should have it.
 Raccoon exceptions are implemented under the hood as `Result` enums. This is so that exception handling can be easier to implement and reason about.
@@ -688,9 +707,9 @@ Unlike Python, Raccoon panics for incidences like division by zero rather than r
 result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python, it panics instead.
 ```
 
-##
 
-### Async / Await
+
+# Async / Await
 
 Should have similar semantics as coroutines in the language but instead of yielding to the user, it yields to the executor.
 
