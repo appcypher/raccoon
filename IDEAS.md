@@ -1,4 +1,4 @@
-## Interface Contract
+### Interface Contract
 
 The body of an untyped function defines its `interface contract`.
 
@@ -15,13 +15,13 @@ def add(a, b):
 
 - `[ T: impl __plus__.2 ]` reads as:
 
-    T is a type that implements `__plus__` method that takes 2 arguments
+  T is a type that implements `__plus__` method that takes 2 arguments
 
 - `(a: any T.__plus__.0, b: any T.__plus__.1)` reads as:
 
-    a is the reference or value of some type that can be passed as first argument to method `T.__plus__`.
+  a is the reference or value of some type that can be passed as first argument to method `T.__plus__`.
 
-    b is the reference or value of some type that can be passed as first argument to method `T.__plus__`.
+  b is the reference or value of some type that can be passed as first argument to method `T.__plus__`.
 
 - `any` represents `ref` or `val` of the type.
 
@@ -91,7 +91,6 @@ s = iterate_gift(StringGiver()) # s has type `str` from the instantiation of ite
 
 Here `iterate_gift` has the following `interface contract`:
 
-
     [
         T: impl gift.1,
         U: impl __iter__.1,
@@ -109,7 +108,9 @@ Here `iterate_gift` has the following `interface contract`:
 
 As mentioned before, what you do with the arguments of an untyped function determines the `interface contract` and the kind of monormorphisation allowed.
 
-## Common Fields
+##
+
+### Common Fields
 
 We have seen above that the methods you use with an argument determine the interface contract of an untyped function. This is also true for the fields of an argument.
 
@@ -119,7 +120,6 @@ def who_am_i(something):
 ```
 
 `who_am_i` will only work for arguments that have a name method. The interface contract of `who_am_i` looks like this:
-
 
     [
         T: impl __str__.1
@@ -190,8 +190,9 @@ print(point1 + point2)
 
     let tmp = __plus__#1(point1, point2) // Object Instantiation. __plus__#1(Point, Point) an instantiation made here.
 
+##
 
-## Generics
+### Generics
 
 Generics are useful for restricting an interface contract further because it allows certain conditional semantics that a developer may desire.
 
@@ -207,7 +208,9 @@ def any_common_elements(l: T, r: U) -> bool:
 any_common_elements([1, 2, 3], {4, 5, 3}) # true
 ```
 
-## Intersection Types and Type Safety
+##
+
+### Intersection Types and Type Safety
 
 Raccoon handles type safety differently. For example, when a function can return multiple types at runtime, Raccoon returns an intersection of both types.
 
@@ -322,7 +325,9 @@ enum class Optional[T]:
 
 https://rust-lang.github.io/unsafe-code-guidelines/layout/enums.html
 
-## Dynamic Dispatch
+##
+
+### Dynamic Dispatch
 
 ```py
 givers = [StringGiver(), IntGiver()]
@@ -430,15 +435,18 @@ new_copy = copy_first(values) # def copy_first(dyn _) -> int & str
 
 This works because at the instantiation of `copy_first(values)`, the compiler still remembers the types behind `values: dyn _`. So it is able to check the return types of all the methods of `int & str`.
 
-## Memory Layouting
+##
+
+### Memory Layouting
 
 Raccoon's memory layouting is mostly inspired by Rust's.
 
 https://docs.google.com/presentation/d/1q-c7UAyrUlM-eZyTo1pd8SZ0qwA_wYxmPZVOQkoDmH4/edit#slide=id.p
 https://github.com/pretzelhammer/rust-blog/blob/master/posts/sizedness-in-rust.md
 
+##
 
-## Type Casting
+### Type Casting
 
 Most times the compiler won't be able to determine the type of variant or `dyn` object at compile-time. So it is useful to have type casting functions.
 
@@ -494,7 +502,6 @@ john = Person(name, age) # Stack-livable part allocated on the stack
 ```
 
 Racoon only stores to the heap in the following scenario: if a longer-lived object captures a reference to a shorter-lived object, the referent is going to be stored in the heap.
-
 
 ```py
 def get_person() -> Person:
@@ -566,7 +573,9 @@ class Thread:
         # ...
 ```
 
-## Function Abstract Classes
+##
+
+### Function Abstract Classes
 
 Each function and closure instantiation has a unique concrete type. But they all implement abstract classes based on the instantiation signature.
 
@@ -595,12 +604,12 @@ They are essentially a class with an associated function.
 
 ```py
 @where(F: def(T) -> U)
-def map[T, U, F](arr: [T], f: F) -> [U]:
+def map[T, U, F](iter: Iter[T], f: F) -> [U]:
     # ...
 
-arr = map([1, 2, 3], lambda i: i + 1)
+arr = [1, 2, 3].iter().map(lambda i: i + 1)
 
-lis = map([1, 2, 3], lambda i: sum(arr) + i)
+lis = [1, 2, 3].iter().map(lambda i: sum(arr) + i)
 ```
 
 In the example above, the first lambda implements `impl def(int) -> int`.
@@ -610,7 +619,7 @@ The second one captures a variable from a parent scope, so it implements `impl C
 A concrete type is contructed for it like this:
 
 ```py
-@where(A: [int], C: Closure[A, def(A, int) -> int])
+@where(A: Iter[int], C: Closure[A, def(A, int) -> int])
 class UniqueClosure[A, C]:
     def __init__(self, capture: A, fn: F):
         self.capture = capture
@@ -623,12 +632,65 @@ class UniqueClosure[A, C]:
 Which then desugars to:
 
 ```py
-lis = map([1, 2, 3], UniqueClosure(arr, lambda capture, i: sum(capture) + i))
+lis = [1, 2, 3].iter().map(UniqueClosure(arr, lambda capture, i: sum(capture) + i))
 ```
 
 This idea of desugaring to concrete types is also explored with coroutines and async/await.
 
-## Async / Await
+##
+
+### Exceptions vs Result Enums
+
+Raccoon supports execeptions just because users coming from Python will have the presumption that Raccoon should have it.
+Raccoon exceptions are implemented under the hood as `Result` enums. This is so that exception handling can be easier to implement and reason about.
+It also makes it possible to statically infer exceptions properties in the codebase.
+
+As long a type implements the `Exception` type, it can be used as an exception.
+
+```py
+@where(E: Exception)
+enum class Result[T, E]:
+    Ok(T)
+    Err(E)
+```
+
+The only major difference between Python and Raccoon exceptions is that Raccoon requires you to handle how your exceptions should be propagated.
+
+```py
+def handled() -> int:
+    try:
+        return get_value()
+    except SomeError: # get_value() raises only SomeError, otherwise compiler will require anotating the return type with `?`.
+        return 0
+
+def unhandled() -> int?:
+    value = get_value()? # Can raise here if there is an exception.
+    return value
+```
+
+The `handled` function can be desugared into the following code and the compiler would still accept it.
+
+```py
+def handled() -> int:
+    match get_value():
+        case Ok(value): return value,
+        case Err(err):
+            if isinstance(err, SomeError): # This is a static check.
+                return 0
+            else:
+                unreachable()
+```
+
+In addition to exceptions, Raccoon also supports `panic`s. A `panic` is a trap that occurs when the program is in an invalid state.
+Unlike Python, Raccoon panics for incidences like division by zero rather than raise a `ZeroDivisionError`.
+
+```py
+result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python, it panics instead.
+```
+
+##
+
+### Async / Await
 
 Should have similar semantics as coroutines in the language but instead of yielding to the user, it yields to the executor.
 
