@@ -1,4 +1,3 @@
-
 # Interface Contract
 
 The body of an untyped function defines its `interface contract`.
@@ -109,8 +108,6 @@ Here `iterate_gift` has the following `interface contract`:
 
 As mentioned before, what you do with the arguments of an untyped function determines the `interface contract` and the kind of monormorphisation allowed.
 
-
-
 # Common Fields
 
 We have seen above that the methods you use with an argument determine the interface contract of an untyped function. This is also true for the fields of an argument.
@@ -134,9 +131,6 @@ def who_am_i(something):
 Notice the `impl [name]` syntax. It used to refer to a field. `impl func.x` is used for methods.
 
 Also notice that we use `T: any U.0` syntax for fields just like arguments because they are values that must also conform to some implementation.
-
-
-
 
 # Additional Example
 
@@ -194,8 +188,6 @@ print(point1 + point2)
 
     let tmp = __plus__#1(point1, point2) // Object Instantiation. __plus__#1(Point, Point) an instantiation made here.
 
-
-
 # Generics
 
 Generics are useful for restricting an interface contract further because it allows certain conditional semantics that a developer may desire.
@@ -211,8 +203,6 @@ def any_common_elements(l: T, r: U) -> bool:
 
 any_common_elements([1, 2, 3], {4, 5, 3}) # true
 ```
-
-
 
 # Intersection Types and Type Safety
 
@@ -234,17 +224,29 @@ t = unsafe()
 
 `int` and `str` are variants of `int & str`.
 
-Intersection types are similar to `dyn AbstractClass`, except that they are used in places where the compiler can easily determine number of types like enum variants, unsafe return types, etc.
+Intersection types are similar to `dyn AbstractClass`, except that they are used in places where the compiler can easily determine number of types that make up the intersection. For example, enum variants, unsafe return types, etc.
 
 ```py
 x: int & str = get_int_or_str()
 double = x + x
 ```
 
-In places where there can be potentially many types, we use dynamic dispatch. This is true for container types.
+In places where there can be potentially many types, we use dynamic dispatch via `dyn` objects. For example, container types.
 
+Raccoon has a different connotation for intersection types which is different from the one used by other languages like [Crystal](https://crystal-lang.org/reference/1.3/syntax_and_semantics/union_types.html), [TypeScript](https://www.typescriptlang.org/docs/handbook/unions-and-intersections.html), [Julia](https://docs.julialang.org/en/v1/manual/types/#Type-Unions) or [Pony](https://tutorial.ponylang.io/types/type-expressions.html?h=inter#unions).
+Raccoon uses it from an implementation perspective rather than a value perspective. So type intersection in Raccoon means the `implementions at the intersection` of the combined types.
 
+`&` is used to represent the idea that because of its binary op interpretation.
 
+```py
+Ob1000 & Ob1100 == Ob1000
+```
+
+```py
+{ foo, bar, qux } & { foo, tee, nonce } == { foo }
+```
+
+https://stackoverflow.com/questions/59722333/union-and-intersection-of-types/59723040#59723040
 
 # Union Classes
 
@@ -258,9 +260,6 @@ union class JSNumber:
 JSNumber.float = 2.0
 print('0x{0:x}'.format(JSNumber.int)) # 0x4000000000000000
 ```
-
-
-
 
 # Enum Classes
 
@@ -335,8 +334,6 @@ enum class Optional[T]:
 
 https://rust-lang.github.io/unsafe-code-guidelines/layout/enums.html
 
-
-
 # Dynamic Dispatch
 
 ```py
@@ -378,6 +375,7 @@ The caveat however is that, operations like the one below, that you would expect
 ```py
 double = ls[0] + ls[0] # Error type of ls[0] can either be str or int and there is no __plus__(int, str) or __plus__(str, int)
 ```
+
 :warning: This section is unfinished and contains a rough idea of how I want things to work.
 
 You may wonder how the compiler determines the type of a container that stores values of different types.
@@ -442,16 +440,12 @@ new_copy = copy_first(values) # def copy_first(dyn _) -> int & str
 
 This works because at the instantiation of `copy_first(values)`, the compiler still remembers the types behind `values: dyn _`. So it is able to check the return types of all the methods of `int & str`.
 
-
-
 # Memory Layouting
 
 Raccoon's memory layouting is mostly inspired by Rust's.
 
 https://docs.google.com/presentation/d/1q-c7UAyrUlM-eZyTo1pd8SZ0qwA_wYxmPZVOQkoDmH4/edit#slide=id.p
 https://github.com/pretzelhammer/rust-blog/blob/master/posts/sizedness-in-rust.md
-
-
 
 # Type Casting
 
@@ -468,9 +462,6 @@ str_value = cast[Int](ls[1-1]) # Raises an error because type cannot be casted.
 variant = get_color()
 red = cast[PrimaryColor.Red](variant) # Raises an error if type cannot be casted.
 ```
-
-
-
 
 # ref vs val
 
@@ -500,9 +491,6 @@ def who_am_i(val person):
 
 who_am_i(john) # function takes a shallow copy of john's stack-livable part.
 ```
-
-
-
 
 # Stack vs Heap Allocation
 
@@ -549,37 +537,35 @@ def get_person() -> Person:
     return Person(name, age) # Person now has a dangling reference to name's stack-livable part with undefined behavior
 ```
 
-This is why the compiler does not have a way to force things to stay on the stack.
-
-
-
+This is why the compiler does not provide a way to force things to stay on the stack.
 
 # Sync and Send
 
 The concept of `Send` and `Sync` is borrowed from Rust.
 
-Heap-allocated objects are not `Sync` by default.
+All types are `!Sync` until they are made `Sync` by types like `Arc[Mutex[T]]`.
 
-Most types are `Send` unless they specify that they are `!Send` by implementing `!Send`, a special compiler abstract class.
+All types are `Send` unless they specify that they are `!Send` by implementing `!Send`, a special compiler abstract class.
 
-When sharing ownership of objects across threads use the `new` keyword switches its underlying implementation from `Box[T]` to either `Arc[T]` or `Arc[Mutex[T]]`, depending on the context.
+When sharing ownership of objects across threads, using the `shared` keyword switches its underlying implementation from `T` or `Box[T]` to either `Arc[T]` or `Arc[Mutex[T]]`, depending on the context.
 
-The contexts are well-defined, but that has to be in another write-up.
+`Arc[Mutex[T]]` makes `!Sync` type `Sync` but it does not make `!Send` type `Send`.
+Actually `Mutex[T]` is what makes a `!Sync` type `Sync`, the `Arc[T]` is only needed to ensure that a `Send` type is garbage-collected correctly across threads.
 
-`Arc[Mutex[T]]` makes `!Sync` object `Sync` but it does not make `!Send` objects `Send`.
+Raccoon does not have an `Rc[T]` type because it uses a thread-local garbage collection technique that does not require runtime reference counting.
 
 ```py
-box_total = new 4600 # `new` is `Box[T]`
-arc_total = new 4500 # `new` is `Arc[Mutex[int]]`
-Thread.spawn(
+arc_total = shared 4500 # `Arc[Mutex[int]]`
+
+handler = Thread.spawn(
     lambda:
         arc_total = 4300 # captured by lambda.
 )
 ```
 
-Here, `Thread.spawn` instantiation contains a lambda that captures its environment, making it a closures.
+Here, `Thread.spawn` instantiation contains a lambda that captures its environment, making it a closure.
 
-`Thread.spawn` can require the its lambdas to be `Send`. It should look roughly like this.
+`Thread.spawn` require the its lambdas to be `Send`. It's implementation looks roughly like this.
 
 ```py
 class Thread:
@@ -588,8 +574,6 @@ class Thread:
     def spawn(f: F):
         # ...
 ```
-
-
 
 # Function Abstract Classes
 
@@ -611,9 +595,6 @@ async def timeout(seconds: int, cb: def() -> void):
 ```
 
 Note the `def` part in the signature. This lets us prevent the ambiguous signature `cb: ()` which can be mistaken for a tuple.
-
-
-
 
 # Closures and Captures
 
@@ -655,8 +636,6 @@ lis = [1, 2, 3].iter().map(UniqueClosure(arr, lambda capture, i: sum(capture) + 
 ```
 
 This idea of desugaring to concrete types is also explored with coroutines and async/await.
-
-
 
 # Exceptions vs Result Enums
 
@@ -707,8 +686,6 @@ Unlike Python, Raccoon panics for incidences like division by zero rather than r
 result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python, it panics instead.
 ```
 
-
-
 # Async / Await
 
 Should have similar semantics as coroutines in the language but instead of yielding to the user, it yields to the executor.
@@ -716,3 +693,157 @@ Should have similar semantics as coroutines in the language but instead of yield
 The standard library should provide a nice default multithreaded task scheduler just like it does with heap allocator.
 
 Reference Rust's future implementation and Tokio's scheduler implementation.
+
+# Garbage Collection
+
+- Automatic Reference Counting (ARC)
+
+    Swift uses a reference counting system to determine when to deallocate a variable. In release mode, it deallocates after the last expression it is used.
+
+    Typical ARC implementation cannot break reference cycles.
+
+    ```py
+    parent = Parent()
+
+    """
+    Parent_0 = 1
+    """
+
+    child = Child()
+
+    """
+    Parent_0 = 1
+    child = 1
+    """
+
+    parent.child = child
+
+    """
+    Parent_0 = 1
+    Child_0 = 2
+    """
+
+    child.parent = parent
+
+    """
+    Parent_0 = 2
+    Child_0 = 2
+
+    DEALLOCATION POINT
+    ==================
+
+    > Parent_0 decrements .child refs to 1
+    Parent_0 = 1
+
+    > Child_0 decrements .parent refs to 1
+    Child_0 = 1
+
+    problem:
+    - both are still not destroyed
+    """
+
+    print('Hello!')
+    ```
+
+    ARC is useful when you have objects that are shared by multiple execution contexts (threads, etc.) since the compiler cannot determine the order in which the threads that reference the object end.
+
+   On the other hand, the compiler knows the lifetimes of objects that are statically known not to be shared between threads using escape analysis among other things. And there are a lot of these types of object.
+
+- Static Reference Tracking (SRT) [WIP]
+
+    Enter SRT. I'm proposing a different style of ARC that is not susceptible to reference cycles and perhaps more efficient because ref counting is done at compile-time. I'm going to call it `Static Reference Tracking` for now because I am not aware of any literature on it.
+
+    Static Reference Tracking (SRT) is a deallocation technique that tracks objects' lifetimes at compile-time and can break reference cycles statically.
+
+    ```
+    foo {
+        a      = Obj1()
+        b      = Obj2()
+        c      = Obj3()
+        d      = Obj4()
+
+        free_owned_deallocatable :: b
+
+        c <- a = Obj3() <- Obj1()
+
+        set_global_deallocatable_ptr :: has objects it needs inner functions to deallocate
+
+        bar (c, a, d) { // function call; knows nothing about parent function
+            a <- c = Obj1() <- Obj3() :: reference cycle!
+            e      = Obj5()
+
+            free_owned_deallocatable :: e
+
+            qux (d) { // function call; knows nothing about parent function
+                free_transferred_deallocatable :: d
+            }
+
+            # Transferred deallocatables are freed at the end of the scope.
+            # It is costly to deallocate them in the middle of the function because it has checks.
+            free_transferred_deallocatable :: a, c
+        }
+    }
+    ```
+
+    `free_transferred_deallocatable` deallocates what it needs to and increments the ptr.
+
+    ##### GLOBAL DEALLOCATABLE LIST
+
+    Each thread has its own global deallocatable list since this model doesn't work with objects shared between threads anyway.
+
+    The compiler sets the GLOBAL_DEALLOCATABLE_LIST at compile time.
+
+    ```
+    GLOBAL_DEALLOCATABLE_PTR -> GLOBAL_DEALLOCATABLE_LIST
+    GLOBAL_DEALLOCATABLE_LIST {
+        foo:
+            (object: ptr _, len: uint, next_deallocate: ptr _), :: d
+            (object: ptr _, len: uint, next_deallocate: ptr _), :: a
+            (object: ptr _, len: uint, next_deallocate: ptr _), :: c
+        ...
+    }
+    ```
+
+    In this case, the compiler lays out how the inner functions of `foo` can deallocate its transferred objects.
+
+    ##### CAVEATS
+    - Inner functions cannot deallocate arguments until scope ends.
+
+        One possible solution will be to take advantage of a `free_owned_deallocatable` call and sneak a `free_transferred_deallocatable` in.
+        Also assigning to None, like `c = None`, can be used to signify that we want to have a `free_transferred_deallocatable` early in the code.
+
+    - Guarantees are broken if Raccoon code interoperates with non-Raccoon code.
+
+    - Objects shared between threads will need runtime reference counting of forks.
+
+
+    ##### HOW IT PREVENTS REFERENCE CYCLES
+
+    The compiler tracks every variable in the program. It is able to determine if two object reference each other from the variables.
+    With this information, the compiler can determine when the two objects are no longer referenced and deallocate them together.
+
+    Creating statically-unknown number of objects dynamically isn't an issue for SRT because objects are bound to statically-known names at compile-time with the exception of temporary objects whose lifetimes are well-defined and statically determinable. The compiler can know when two object reference each other from their names and it can determine when the two objects are no longer referenced and deallocate them together.
+
+    ##### POINTER ALIASING
+
+    Raw pointer aliasing affects all dellocation techniques. SRT, Tracing GCs, ARC, ownership semantics, etc. That is why we have references. They are an abstraction over pointers, something our GCs understand. Raw pointer misuse is a problem for any GC technique.
+
+    ##### REFERENCE INTO A LIST
+
+    If there is a reference to a list item, the entire list is not freed until all references to it and/or its elements are dead.
+
+    ```py
+    scores = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    fourth = scores[3]
+
+    some = scores[3:7]
+    ```
+
+
+##### REFERENCES
+
+https://stackoverflow.com/questions/48986455/swift-class-de-initialized-at-end-of-scope-instead-of-after-last-usage
+
+https://forums.swift.org/t/should-swift-apply-statement-scope-for-arc/4081
+
