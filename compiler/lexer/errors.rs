@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 use crate::span::Span;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LexerError {
     MixedSpaces(Span),
 }
@@ -13,8 +13,6 @@ impl std::error::Error for LexerError {}
 
 impl Display for LexerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LexerError::MixedSpaces(span) => f.debug_tuple("MixedSpaces").field(span).finish(),
-        }
+        write!(f, "{:?}", self)
     }
 }
