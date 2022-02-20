@@ -234,19 +234,28 @@ double = x + x
 In places where there can be potentially many types, we use dynamic dispatch via `dyn` objects. For example, container types.
 
 Raccoon has a different connotation for intersection types which is different from the one used by other languages like [Crystal](https://crystal-lang.org/reference/1.3/syntax_and_semantics/union_types.html), [TypeScript](https://www.typescriptlang.org/docs/handbook/unions-and-intersections.html), [Julia](https://docs.julialang.org/en/v1/manual/types/#Type-Unions) or [Pony](https://tutorial.ponylang.io/types/type-expressions.html?h=inter#unions).
-Raccoon uses it from an implementation perspective rather than a value perspective. So type intersection in Raccoon means the `implementions at the intersection` of the combined types.
 
-`&` is used to represent the idea that because of its binary op interpretation.
+Raccoon uses it from an implementation (or member) perspective rather than a shape perspective. So type intersection in Raccoon means the `implementations at the intersection` of the combined types implementations.
+
+`&` is used to represent the idea just like in set theory.
 
 ```py
 Ob1000 & Ob1100 == Ob1000
-```
 
-```py
-{ foo, bar, qux } & { foo, tee, nonce } == { foo }
+{ foo, bar, qux } & { tee, foo } == { foo }
 ```
 
 https://stackoverflow.com/questions/59722333/union-and-intersection-of-types/59723040#59723040
+
+Raccoon's intersection types is position-independent. This behavior is naturally expected of method members but it also applies to field members.
+
+```py
+data class A(x: int, y: str): pass
+data class B(w: str, x: int): pass
+data class C(x: int): pass
+```
+
+This means type `C` can pass where `A & B` is expected even though `B` has its `x` field in a different position from a data layout perspective.
 
 # Union Classes
 
@@ -454,8 +463,8 @@ Most times the compiler won't be able to determine the type of variant or `dyn` 
 ```py
 ls = [5, "Hello"]
 
-int_value = cast[Int](ls[0])
-str_value = cast[Int](ls[1-1]) # Raises an error because type cannot be casted.
+int_value = cast[int](ls[0])
+str_value = cast[int](ls[1-1]) # Raises an error because type cannot be casted.
 ```
 
 ```py
@@ -698,152 +707,150 @@ Reference Rust's future implementation and Tokio's scheduler implementation.
 
 - Automatic Reference Counting (ARC)
 
-    Swift uses a reference counting system to determine when to deallocate a variable. In release mode, it deallocates after the last expression it is used.
+  Swift uses a reference counting system to determine when to deallocate a variable. In release mode, it deallocates after the last expression it is used.
 
-    Typical ARC implementation cannot break reference cycles.
+  Typical ARC implementation cannot break reference cycles.
 
-    ```py
-    parent = Parent()
+  ```py
+  parent = Parent()
 
-    """
-    Parent_0 = 1
-    """
+  """
+  Parent_0 = 1
+  """
 
-    child = Child()
+  child = Child()
 
-    """
-    Parent_0 = 1
-    child = 1
-    """
+  """
+  Parent_0 = 1
+  child = 1
+  """
 
-    parent.child = child
+  parent.child = child
 
-    """
-    Parent_0 = 1
-    Child_0 = 2
-    """
+  """
+  Parent_0 = 1
+  Child_0 = 2
+  """
 
-    child.parent = parent
+  child.parent = parent
 
-    """
-    Parent_0 = 2
-    Child_0 = 2
+  """
+  Parent_0 = 2
+  Child_0 = 2
 
-    DEALLOCATION POINT
-    ==================
+  DEALLOCATION POINT
+  ==================
 
-    > Parent_0 decrements .child refs to 1
-    Parent_0 = 1
+  > Parent_0 decrements .child refs to 1
+  Parent_0 = 1
 
-    > Child_0 decrements .parent refs to 1
-    Child_0 = 1
+  > Child_0 decrements .parent refs to 1
+  Child_0 = 1
 
-    problem:
-    - both are still not destroyed
-    """
+  problem:
+  - both are still not destroyed
+  """
 
-    print('Hello!')
-    ```
+  print('Hello!')
+  ```
 
-    ARC is useful when you have objects that are shared by multiple execution contexts (threads, etc.) since the compiler cannot determine the order in which the threads that reference the object end.
+  ARC is useful when you have objects that are shared by multiple execution contexts (threads, etc.) since the compiler cannot determine the order in which the threads that reference the object end.
 
-   On the other hand, the compiler knows the lifetimes of objects that are statically known not to be shared between threads using escape analysis among other things. And there are a lot of these types of object.
+  On the other hand, the compiler knows the lifetimes of objects that are statically known not to be shared between threads using escape analysis among other things. And there are a lot of these types of object.
 
 - Static Reference Tracking (SRT) [WIP]
 
-    Enter SRT. I'm proposing a different style of ARC that is not susceptible to reference cycles and perhaps more efficient because ref counting is done at compile-time. I'm going to call it `Static Reference Tracking` for now because I am not aware of any literature on it.
+  Enter SRT. I'm proposing a different style of ARC that is not susceptible to reference cycles and perhaps more efficient because ref counting is done at compile-time. I'm going to call it `Static Reference Tracking` for now because I am not aware of any literature on it.
 
-    Static Reference Tracking (SRT) is a deallocation technique that tracks objects' lifetimes at compile-time and can break reference cycles statically.
+  Static Reference Tracking (SRT) is a deallocation technique that tracks objects' lifetimes at compile-time and can break reference cycles statically.
 
-    ```
-    foo {
-        a      = Obj1()
-        b      = Obj2()
-        c      = Obj3()
-        d      = Obj4()
+  ```
+  foo {
+      a      = Obj1()
+      b      = Obj2()
+      c      = Obj3()
+      d      = Obj4()
 
-        free_owned_deallocatable :: b
+      free_owned_deallocatable :: b
 
-        c <- a = Obj3() <- Obj1()
+      c <- a = Obj3() <- Obj1()
 
-        set_global_deallocatable_ptr :: has objects it needs inner functions to deallocate
+      set_global_deallocatable_ptr :: has objects it needs inner functions to deallocate
 
-        bar (c, a, d) { // function call; knows nothing about parent function
-            a <- c = Obj1() <- Obj3() :: reference cycle!
-            e      = Obj5()
+      bar (c, a, d) { // function call; knows nothing about parent function
+          a <- c = Obj1() <- Obj3() :: reference cycle!
+          e      = Obj5()
 
-            free_owned_deallocatable :: e
+          free_owned_deallocatable :: e
 
-            qux (d) { // function call; knows nothing about parent function
-                free_transferred_deallocatable :: d
-            }
+          qux (d) { // function call; knows nothing about parent function
+              free_transferred_deallocatable :: d
+          }
 
-            # Transferred deallocatables are freed at the end of the scope.
-            # It is costly to deallocate them in the middle of the function because it has checks.
-            free_transferred_deallocatable :: a, c
-        }
-    }
-    ```
+          # Transferred deallocatables are freed at the end of the scope.
+          # It is costly to deallocate them in the middle of the function because it has checks.
+          free_transferred_deallocatable :: a, c
+      }
+  }
+  ```
 
-    `free_transferred_deallocatable` deallocates what it needs to and increments the ptr.
+  `free_transferred_deallocatable` deallocates what it needs to and increments the ptr.
 
-    ##### GLOBAL DEALLOCATABLE LIST
+  ##### GLOBAL DEALLOCATABLE LIST
 
-    Each thread has its own global deallocatable list since this model doesn't work with objects shared between threads anyway.
+  Each thread has its own global deallocatable list since this model doesn't work with objects shared between threads anyway.
 
-    The compiler sets the GLOBAL_DEALLOCATABLE_LIST at compile time.
+  The compiler sets the GLOBAL_DEALLOCATABLE_LIST at compile time.
 
-    ```
-    GLOBAL_DEALLOCATABLE_PTR -> GLOBAL_DEALLOCATABLE_LIST
-    GLOBAL_DEALLOCATABLE_LIST {
-        foo:
-            (object: ptr _, len: uint, next_deallocate: ptr _), :: d
-            (object: ptr _, len: uint, next_deallocate: ptr _), :: a
-            (object: ptr _, len: uint, next_deallocate: ptr _), :: c
-        ...
-    }
-    ```
+  ```
+  GLOBAL_DEALLOCATABLE_PTR -> GLOBAL_DEALLOCATABLE_LIST
+  GLOBAL_DEALLOCATABLE_LIST {
+      foo:
+          (object: ptr _, len: uint, next_deallocate: ptr _), :: d
+          (object: ptr _, len: uint, next_deallocate: ptr _), :: a
+          (object: ptr _, len: uint, next_deallocate: ptr _), :: c
+      ...
+  }
+  ```
 
-    In this case, the compiler lays out how the inner functions of `foo` can deallocate its transferred objects.
+  In this case, the compiler lays out how the inner functions of `foo` can deallocate its transferred objects.
 
-    ##### CAVEATS
-    - Inner functions cannot deallocate arguments until scope ends.
+  ##### CAVEATS
 
-        One possible solution will be to take advantage of a `free_owned_deallocatable` call and sneak a `free_transferred_deallocatable` in.
-        Also assigning to None, like `c = None`, can be used to signify that we want to have a `free_transferred_deallocatable` early in the code.
+  - Inner functions cannot deallocate arguments until scope ends.
 
-    - Guarantees are broken if Raccoon code interoperates with non-Raccoon code.
+    One possible solution will be to take advantage of a `free_owned_deallocatable` call and sneak a `free_transferred_deallocatable` in.
+    Also assigning to None, like `c = None`, can be used to signify that we want to have a `free_transferred_deallocatable` early in the code.
 
-    - Objects shared between threads will need runtime reference counting of forks.
+  - Guarantees are broken if Raccoon code interoperates with non-Raccoon code.
 
+  - Objects shared between threads will need runtime reference counting of forks.
 
-    ##### HOW IT PREVENTS REFERENCE CYCLES
+  ##### HOW IT PREVENTS REFERENCE CYCLES
 
-    The compiler tracks every variable in the program. It is able to determine if two object reference each other from the variables.
-    With this information, the compiler can determine when the two objects are no longer referenced and deallocate them together.
+  The compiler tracks every variable in the program. It is able to determine if two object reference each other from the variables.
+  With this information, the compiler can determine when the two objects are no longer referenced and deallocate them together.
 
-    Creating statically-unknown number of objects dynamically isn't an issue for SRT because objects are bound to statically-known names at compile-time with the exception of temporary objects whose lifetimes are well-defined and statically determinable. The compiler can know when two object reference each other from their names and it can determine when the two objects are no longer referenced and deallocate them together.
+  Creating statically-unknown number of objects dynamically isn't an issue for SRT because objects are bound to statically-known names at compile-time with the exception of temporary objects whose lifetimes are well-defined and statically determinable. The compiler can know when two object reference each other from their names and it can determine when the two objects are no longer referenced and deallocate them together.
 
-    ##### POINTER ALIASING
+  ##### POINTER ALIASING
 
-    Raw pointer aliasing affects all dellocation techniques. SRT, Tracing GCs, ARC, ownership semantics, etc. That is why we have references. They are an abstraction over pointers, something our GCs understand. Raw pointer misuse is a problem for any GC technique.
+  Raw pointer aliasing affects all dellocation techniques. SRT, Tracing GCs, ARC, ownership semantics, etc. That is why we have references. They are an abstraction over pointers, something our GCs understand. Raw pointer misuse is a problem for any GC technique.
 
-    ##### REFERENCE INTO A LIST
+  ##### REFERENCE INTO A LIST
 
-    If there is a reference to a list item, the entire list is not freed until all references to it and/or its elements are dead.
+  If there is a reference to a list item, the entire list is not freed until all references to it and/or its elements are dead.
 
-    ```py
-    scores = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  ```py
+  scores = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-    fourth = scores[3]
+  fourth = scores[3]
 
-    some = scores[3:7]
-    ```
-
+  some = scores[3:7]
+  ```
 
 ##### REFERENCES
 
 https://stackoverflow.com/questions/48986455/swift-class-de-initialized-at-end-of-scope-instead-of-after-last-usage
 
 https://forums.swift.org/t/should-swift-apply-statement-scope-for-arc/4081
-
