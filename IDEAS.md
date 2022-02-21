@@ -318,9 +318,9 @@ def to_byte(variant: PrimaryColor): # This function will be monomorphised.
 
 def to_byte(variant: PrimaryColor): # This function can also be monomorphised.
     match variant:
-       Red(t): return t
-       Blue(t): return t
-       Green(t): return t
+       case Red(t): return t
+       case Blue(t): return t
+       case Green(t): return t
 ```
 
 Because enum variants are regular classes, we can have specialized method for them.
@@ -333,12 +333,18 @@ def red_to_byte(color: PrimaryColor.Red): # This is a specialised function.
 Methods and fields accessed on an intersection type must apply to all the variants.
 
 ```py
-enum class Optional[T]:
+enum class Option[T]:
     Some(t: T)
     None
 
     def unwrap(self):
-        return self.t # Error because None a variant of Optional[T] does not have a `t` field.
+        return self.t # Error because None a variant of Option[T] does not have a `t` field.
+
+    def unwrap(self):
+        match self:
+            case Some(t): return t
+            case None: panic('unwrap called on None')
+
 ```
 
 https://rust-lang.github.io/unsafe-code-guidelines/layout/enums.html
@@ -652,13 +658,19 @@ Raccoon supports execeptions just because users coming from Python will have the
 Raccoon exceptions are implemented under the hood as `Result` enums. This is so that exception handling can be easier to implement and reason about.
 It also makes it possible to statically infer exceptions properties in the codebase.
 
-As long a type implements the `Exception` type, it can be used as an exception.
-
 ```py
-@where(E: Exception)
+@where(E: Error)
 enum class Result[T, E]:
     Ok(T)
     Err(E)
+```
+
+As long a type implements the `Error` type, it can be used as an exception.
+
+```py
+class SomeError(Error):
+    def __init__(self, message: str):
+        super().__init__(message)
 ```
 
 The only major difference between Python and Raccoon exceptions is that Raccoon requires you to handle how your exceptions should be propagated.
@@ -709,135 +721,169 @@ Reference Rust's future implementation and Tokio's scheduler implementation.
 
   Swift uses a reference counting system to determine when to deallocate a variable. In release mode, it deallocates after the last expression it is used.
 
-  Typical ARC implementation cannot break reference cycles.
+  Swift compiler inserts retain/release ops automatically.
+
+  ARC suffers from reference cycles leaks and deadlocks.
 
   ```py
   parent = Parent()
 
   """
-  Parent_0 = 1
+  ParentRefs(1) = { parent }
   """
 
   child = Child()
 
   """
-  Parent_0 = 1
-  child = 1
+  ParentRefs(1) = { parent }
+  ChildRefs(1) = { child }
   """
 
   parent.child = child
 
   """
-  Parent_0 = 1
-  Child_0 = 2
+  ParentRefs(1) = { parent }
+  ChildRefs(2) = { child, parent.child }
   """
 
   child.parent = parent
 
   """
-  Parent_0 = 2
-  Child_0 = 2
-
-  DEALLOCATION POINT
-  ==================
-
-  > Parent_0 decrements .child refs to 1
-  Parent_0 = 1
-
-  > Child_0 decrements .parent refs to 1
-  Child_0 = 1
-
-  problem:
-  - both are still not destroyed
+  ParentRefs(2) = { parent, child.parent }
+  ChildRefs(2) = { child, parent.child }
   """
 
-  print('Hello!')
+  """
+  DEALLOCATION POINT
+  """
+
+  """
+  `parent` goes out of scope
+  -> `parent` decrements rc.
+  -> Parent object does not deinitialise because its rc is not 0 yet.
+
+  ParentRefs(1) = { child.parent }
+  ChildRefs(2) = { child, parent.child }
+  """
+
+  """
+  `child` goes out of scope
+  -> `child` decrements rc.
+  -> Child object does not deinitialise because its rc is not 0 yet.
+
+  ParentRefs(1) = { child.parent }
+  ChildRefs(1) = { parent.child }
+  """
   ```
 
-  ARC is useful when you have objects that are shared by multiple execution contexts (threads, etc.) since the compiler cannot determine the order in which the threads that reference the object end.
+  We can introduce a weak reference to break the cycle.
 
-  On the other hand, the compiler knows the lifetimes of objects that are statically known not to be shared between threads using escape analysis among other things. And there are a lot of these types of object.
+  ```py
+  child.parent = WeakRef(parent)
+
+  """
+  ParentRefs(1) = { parent }
+  ChildRefs(2) = { child, parent.child }
+  """
+
+  """
+  DEALLOCATION POINT
+  """
+
+  """
+  name `parent` goes out of scope
+  -> `parent` decrements rc.
+  -> Parent object rc is 0 so it deinitialises.
+  -> `parent.child` decrements Child rc.
+
+  ParentRefs(0) = { }
+  ChildRefs(1) = { child }
+  """
+
+  """
+  `child` goes out of scope
+  -> `child` decrements rc because no one refers to it anymore.
+  -> Child object rc is 0 so it deinitialises.
+  -> `child.parent` is already nil.
+
+  ParentRefs(0) = { }
+  ChildRefs(0) = { }
+  """
+  ```
+
+  The reason there is a reference cycle problem at all is that object's in Swift's world can't decrement internal references until the object's rc is zero which then triggers deinitialization.
+
+  https://developer.apple.com/videos/play/wwdc2021/10216/
+
+  https://docs.swift.org/swift-book/LanguageGuide/AutomaticReferenceCounting.html
 
 - Static Reference Tracking (SRT) [WIP]
 
-  Enter SRT. I'm proposing a different style of ARC that is not susceptible to reference cycles and perhaps more efficient because ref counting is done at compile-time. I'm going to call it `Static Reference Tracking` for now because I am not aware of any literature on it.
+  Enter SRT. I'm proposing a different style of ARC that is not susceptible to reference cycles. I'm going to call it `Static Reference Tracking` for now because I am not aware of any literature on it.
 
-  Static Reference Tracking (SRT) is a deallocation technique that tracks objects' lifetimes at compile-time and can break reference cycles statically.
+  Static Reference Tracking (SRT) is a deallocation technique that tracks objects' lifetimes at compile-time and can break reference cycles statically. It also does not have runtime reference counting operations like ARC does.
 
   ```
-  foo {
+  foo () {
       a      = Obj1()
       b      = Obj2()
       c      = Obj3()
       d      = Obj4()
 
+      # We call `free_owned_deallocatable` after every last use of an arg passed by value or a local-lifetime variable.
       free_owned_deallocatable :: b
 
       c <- a = Obj3() <- Obj1()
 
-      set_global_deallocatable_ptr :: has objects it needs inner functions to deallocate
+      # Foo has objects it needs inner function frames to deallocate, so it sets pointer to deallocation list.
+      set_global_deallocatable_ptr
 
-      bar (c, a, d) { // function call; knows nothing about parent function
-          a <- c = Obj1() <- Obj3() :: reference cycle!
+      bar (ref c, ref a, ref d) { # bar frame; knows nothing about caller function frame
+          a <- c = Obj1() <- Obj3() # Cross-frame cycle detection!
           e      = Obj5()
 
           free_owned_deallocatable :: e
 
-          qux (d) { // function call; knows nothing about parent function
+          # We call `free_transferred_deallocatable` after every last use of an arg passed by ref.
+          free_transferred_deallocatable :: a, c
+
+          qux (ref d) { # qux frame; knows nothing about caller function frame
               free_transferred_deallocatable :: d
           }
-
-          # Transferred deallocatables are freed at the end of the scope.
-          # It is costly to deallocate them in the middle of the function because it has checks.
-          free_transferred_deallocatable :: a, c
       }
   }
   ```
 
   `free_transferred_deallocatable` deallocates what it needs to and increments the ptr.
 
-  ##### GLOBAL DEALLOCATABLE LIST
+  #### DEALLOCATABLE LIST
 
-  Each thread has its own global deallocatable list since this model doesn't work with objects shared between threads anyway.
+  Each thread has its own thread-local `DEALLOCATABLE_LIST` since this model doesn't work with objects across between threads. You need `Arc[T]` for that.
 
-  The compiler sets the GLOBAL_DEALLOCATABLE_LIST at compile time.
+  The compiler can arrange the `DEALLOCATABLE_LIST` during compilation because a caller function frame always knows the structure of its inner function frames.
 
   ```
-  GLOBAL_DEALLOCATABLE_PTR -> GLOBAL_DEALLOCATABLE_LIST
-  GLOBAL_DEALLOCATABLE_LIST {
+  DEALLOCATABLE_PTR -> points to -> DEALLOCATABLE_LIST
+
+  DEALLOCATABLE_LIST:
       foo:
-          (object: ptr _, len: uint, next_deallocate: ptr _), :: d
-          (object: ptr _, len: uint, next_deallocate: ptr _), :: a
-          (object: ptr _, len: uint, next_deallocate: ptr _), :: c
+          (object: ptr _, count: uint), :: a
+          (object: ptr _, count: uint), :: c
+          (object: ptr _, count: uint), :: d
       ...
-  }
   ```
 
-  In this case, the compiler lays out how the inner functions of `foo` can deallocate its transferred objects.
+  In this case, the compiler lays out how the inner function frames of `foo` should deallocate `foo`'s transferred objects.
 
-  ##### CAVEATS
+  #### HOW IT PREVENTS REFERENCE CYCLES
 
-  - Inner functions cannot deallocate arguments until scope ends.
+  The compiler tracks every object in the program just like ARC, but unlike ARC tracks all the objects a **name** is refers to. This includes internal references (i.e. fields) of the name. The compiler decrements all the associated object rc when the **name** lifetime ends. The counting is done at compile-time so there is no runtime aspect to it.
 
-    One possible solution will be to take advantage of a `free_owned_deallocatable` call and sneak a `free_transferred_deallocatable` in.
-    Also assigning to None, like `c = None`, can be used to signify that we want to have a `free_transferred_deallocatable` early in the code.
-
-  - Guarantees are broken if Raccoon code interoperates with non-Raccoon code.
-
-  - Objects shared between threads will need runtime reference counting of forks.
-
-  ##### HOW IT PREVENTS REFERENCE CYCLES
-
-  The compiler tracks every variable in the program. It is able to determine if two object reference each other from the variables.
-  With this information, the compiler can determine when the two objects are no longer referenced and deallocate them together.
-
-  Creating statically-unknown number of objects dynamically isn't an issue for SRT because objects are bound to statically-known names at compile-time with the exception of temporary objects whose lifetimes are well-defined and statically determinable. The compiler can know when two object reference each other from their names and it can determine when the two objects are no longer referenced and deallocate them together.
-
-  ##### POINTER ALIASING
+  #### POINTER ALIASING
 
   Raw pointer aliasing affects all dellocation techniques. SRT, Tracing GCs, ARC, ownership semantics, etc. That is why we have references. They are an abstraction over pointers, something our GCs understand. Raw pointer misuse is a problem for any GC technique.
 
-  ##### REFERENCE INTO A LIST
+  #### REFERENCE INTO A LIST
 
   If there is a reference to a list item, the entire list is not freed until all references to it and/or its elements are dead.
 
