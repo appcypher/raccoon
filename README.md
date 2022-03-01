@@ -44,5 +44,3 @@ class Person:
 jane = Person("Jane Doe", "Female", 23)
 print("Jane >", jane)
 ```
-
-Gigamono main visual programming language is based on `raccoon`.
