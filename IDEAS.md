@@ -700,7 +700,7 @@ def handled() -> int:
                 unreachable()
 ```
 
-In addition to exceptions, Raccoon also supports `panic`s. A `panic` is a trap that occurs when the program is in an invalid state.
+In addition to exceptions, Raccoon also supports `panic`s. A `panic` is a trap/signal that occurs when the program is in an invalid state.
 Unlike Python, Raccoon panics for incidences like division by zero rather than raise a `ZeroDivisionError`.
 
 ```py
@@ -719,9 +719,7 @@ Reference Rust's future implementation and Tokio's scheduler implementation.
 
 - Automatic Reference Counting (ARC)
 
-  Swift uses a reference counting system to determine when to deallocate a variable. In release mode, it deallocates after the last expression it is used.
-
-  Swift compiler inserts retain/release ops automatically.
+  Swift uses a reference counting system to determine when to deallocate a variable.
 
   ARC suffers from reference cycles leaks and deadlocks.
 
