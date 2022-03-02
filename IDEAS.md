@@ -865,14 +865,14 @@ Reference Rust's future implementation and Tokio's scheduler implementation.
 
   DEALLOCATABLE_LIST:
       foo:
-          (object: ptr _, count: uint), :: a
-          (object: ptr _, count: uint), :: c
-          (object: ptr _, count: uint), :: d
+          (stack_livable_ptr_address: ptr _), :: a
+          (stack_livable_ptr_address: ptr _), :: c
+          (stack_livable_ptr_address: ptr _), :: d
       ...
   ```
 
-  In this case, the compiler lays out how the inner function frames of `foo` should deallocate `foo`'s transferred objects.
-
+  In this case, the compiler lays out how the inner function frames of `foo` should deallocate `foo`'s transferred objects. `stack_livable_ptr_address` is the address of the stack-livable pointer pointing to the heap. We don't actually hold heap addresses because of invalidation that can take place.
+  
   #### HOW IT PREVENTS REFERENCE CYCLES
 
   The compiler tracks every object in the program just like ARC, but unlike ARC tracks all the objects a **name** is refers to. This includes internal references (i.e. fields) of the name. The compiler decrements all the associated object rc when the **name** lifetime ends. The counting is done at compile-time so there is no runtime aspect to it.
