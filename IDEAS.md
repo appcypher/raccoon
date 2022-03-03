@@ -233,7 +233,7 @@ double = x + x
 
 In places where there can be potentially many types, we use dynamic dispatch via `dyn` objects. For example, container types.
 
-Raccoon has a different connotation for intersection types which is different from the one used by other languages like [Crystal](https://crystal-lang.org/reference/1.3/syntax_and_semantics/union_types.html), [TypeScript](https://www.typescriptlang.org/docs/handbook/unions-and-intersections.html), [Julia](https://docs.julialang.org/en/v1/manual/types/#Type-Unions) or [Pony](https://tutorial.ponylang.io/types/type-expressions.html?h=inter#unions).
+Raccoon defines `intersection types` differently from other languages like [Crystal](https://crystal-lang.org/reference/1.3/syntax_and_semantics/union_types.html), [TypeScript](https://www.typescriptlang.org/docs/handbook/unions-and-intersections.html), [Julia](https://docs.julialang.org/en/v1/manual/types/#Type-Unions) or [Pony](https://tutorial.ponylang.io/types/type-expressions.html?h=inter#unions).
 
 Raccoon uses it from an implementation (or member) perspective rather than a shape perspective. So type intersection in Raccoon means the `implementations at the intersection` of the combined types implementations.
 
