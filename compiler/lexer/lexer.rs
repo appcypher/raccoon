@@ -1,8 +1,8 @@
 // Copyright 2022 the Gigamono authors. All rights reserved. GPL-3.0 License.
 
 use crate::span::Span;
+use anyhow::Result;
 use std::str::Chars;
-use utilities::result::Result;
 
 use super::errors::LexerError;
 use super::token::{Token, TokenKind::*};

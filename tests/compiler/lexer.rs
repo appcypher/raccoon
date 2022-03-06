@@ -1,10 +1,10 @@
 // Copyright 2022 the Gigamono authors. All rights reserved. GPL-3.0 License.
 
+use anyhow::Result;
 use raccoon_compiler::{
     lexer::{Lexer, LexerError, Token, TokenKind},
     span::Span,
 };
-use utilities::result::Result;
 
 // This is a custom result type for testing purpose.
 // anyhow::Result does not implement PartialEq so it cannot be used in tests.

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 raccoon_compiler = { path = "../compiler" }
-utilities = { path = "../../utilities" }
+anyhow = "0.1"
 
 [lib]
 path = "lib.rs"
