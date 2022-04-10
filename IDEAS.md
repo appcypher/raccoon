@@ -43,11 +43,13 @@ Say we have an abstract class with a method that allows the implementor to retur
 abstract class Giver:
     abstract def gift(self)
 
-class StringGiver(Giver):
+@implements(Giver)
+class StringGiver:
     def gift(self) -> str:
         return "string gift" # Has an str return type
 
-class IntGiver(Giver):
+@implements(Giver)
+class IntGiver:
     def gift(self) -> int:
         return 8080 # Has an int return type
 ```
@@ -250,9 +252,9 @@ https://stackoverflow.com/questions/59722333/union-and-intersection-of-types/597
 Raccoon's intersection types is position-independent. This behavior is naturally expected of method members but it also applies to field members.
 
 ```py
-data class A(x: int, y: str): pass
-data class B(w: str, x: int): pass
-data class C(x: int): pass
+data class A(x: int, y: str)
+data class B(w: str, x: int)
+data class C(x: int)
 ```
 
 This means type `C` can pass where `A & B` is expected even though `B` has its `x` field in a different position from a data layout perspective.
@@ -573,7 +575,7 @@ Raccoon does not have an `Rc[T]` type because it uses a thread-local garbage col
 arc_total = shared 4500 # `Arc[Mutex[int]]`
 
 handler = Thread.spawn(
-    lambda:
+    def ():
         arc_total = 4300 # captured by lambda.
 )
 ```
@@ -584,73 +586,120 @@ Here, `Thread.spawn` instantiation contains a lambda that captures its environme
 
 ```py
 class Thread:
-    # ...
     @where(F: Send & def() -> void)
-    def spawn(f: F):
-        # ...
+    def spawn(fn: F):
+        pass
 ```
 
-# Function Abstract Classes
+# Multiple Implementations
 
-Each function and closure instantiation has a unique concrete type. But they all implement abstract classes based on the instantiation signature.
-
-For example, the following two function instantiations implement the same abstract class. `impl def(str, int) -> str`.
+Inspired by Rust, Raccoon allows multiple implementations of a class as long there is no conflict.
 
 ```py
-s = foo("hello", 2) # returns str
-s = bar("bar", 400) # returns str
+@implements(Abstract[T])
+class Foo[T]:
+    def bar(self, value: T):
+        print(f"T = {value}")
+
+@implements(Abstract[int])
+class Foo[(string, int)]:
+    def bar(self, value: int):
+        print(f"int = {value}")
 ```
 
-Just like regular abstract classes, we don't specify the `impl` part of the signature when writing the signature out.
+# Closures
+
+Inspired by Rust's closures.
 
 ```py
-async def timeout(seconds: int, cb: def() -> void):
-    await sleep(seconds)
-    cb()
+abstract class Fn[(...Args), R]:
+    def call(self, args: (...Args)) -> R
 ```
 
-Note the `def` part in the signature. This lets us prevent the ambiguous signature `cb: ()` which can be mistaken for a tuple.
-
-# Closures and Captures
-
-Closures are funtions until they capture their environment. Closures that capture their environments have a different signature.
-
-They are essentially a class with an associated function.
-
 ```py
-@where(F: def(T) -> U)
-def map[T, U, F](iter: Iter[T], f: F) -> [U]:
-    # ...
+def filter(xs: [int], fn: Fn[(int), bool]) -> [int]:
+    return [x for x in xs if fn(x)]
 
-arr = [1, 2, 3].iter().map(lambda i: i + 1)
-
-lis = [1, 2, 3].iter().map(lambda i: sum(arr) + i)
+[1, 2, 3, 4, 5].filter(def (x): x % 2 == 0)
 ```
 
-In the example above, the first lambda implements `impl def(int) -> int`.
+```py
+def curry_add(x: int) -> Fn[(int), int]:
+    def add(y: int) -> int:
+        return x + y
 
-The second one captures a variable from a parent scope, so it implements `impl Closure[[int], impl def([int], int) -> int]`.
+    return add
 
-A concrete type is contructed for it like this:
+fn = curry_add(5)
+result = fn(10) # 15
+```
+
+For the above example, `add` is a closure that captures `x`. A temporary class is created for closures that capture variables. In this case, the compiler will generate something like this.
 
 ```py
-@where(A: Iter[int], C: Closure[A, def(A, int) -> int])
-class UniqueClosure[A, C]:
-    def __init__(self, capture: A, fn: F):
-        self.capture = capture
+@implements(Fn[(int), int])
+class __tmp_add:
+    def __init__(x: int, fn: (int) -> int):
+        self.x = x
         self.fn = fn
 
-    def __call__(self, i):
-        self.fn(self.capture, i)
+    def call(self, args: (int)) -> int:
+        (y) = args
+        return self.fn(self.x, y)
 ```
 
-Which then desugars to:
+# Futures / Streams
+
+Inspired by Rust's futures and streams.
 
 ```py
-lis = [1, 2, 3].iter().map(UniqueClosure(arr, lambda capture, i: sum(capture) + i))
+asbstract class Future[T]:
+    def poll(self, ctx: Context) -> Poll[T]
+
+asbstract class Stream[T]:
+    def poll_next(self, ctx: Context) -> Poll[Option[T]]
+
+enum class Poll[T]:
+    Ready(T),
+    Pending
 ```
 
-This idea of desugaring to concrete types is also explored with coroutines and async/await.
+```py
+@implements(Future[int])
+data class Temperature(value: int = None):
+    def poll(self, ctx: Context) -> Poll[int]:
+        if self.value is None:
+            sensor.register(def (value):
+                self.value = value
+                ctx.wake()
+            )
+            return Poll.Pending
+        else:
+            return Poll.Ready(self.value)
+```
+
+# Iterators
+
+Inspired by Rust's iterators.
+
+```py
+abstract class Iterator[T]:
+    def next(self) -> Option[T]
+```
+
+```py
+@implements(Iterator[T])
+data class ListIterator[T](xs: [T], index = 0):
+    def next(self) -> Option[T]:
+        if self.index >= len(self.xs):
+            return None
+        else:
+            self.index += 1
+            return self.xs[self.index - 1]
+
+for i in ListIterator([1, 2, 3, 4, 5]):
+    print(i)
+```
 
 # Exceptions vs Result Enums
 
@@ -668,7 +717,8 @@ enum class Result[T, E]:
 As long a type implements the `Error` type, it can be used as an exception.
 
 ```py
-class SomeError(Error):
+@implements(Error)
+class SomeError:
     def __init__(self, message: str):
         super().__init__(message)
 ```
@@ -872,7 +922,7 @@ Reference Rust's future implementation and Tokio's scheduler implementation.
   ```
 
   In this case, the compiler lays out how the inner function frames of `foo` should deallocate `foo`'s transferred objects. `stack_livable_ptr_address` is the address of the stack-livable pointer pointing to the heap. We don't actually hold heap addresses because of invalidation that can take place.
-  
+
   #### HOW IT PREVENTS REFERENCE CYCLES
 
   The compiler tracks every object in the program just like ARC, but unlike ARC tracks all the objects a **name** is refers to. This includes internal references (i.e. fields) of the name. The compiler decrements all the associated object rc when the **name** lifetime ends. The counting is done at compile-time so there is no runtime aspect to it.
@@ -892,6 +942,10 @@ Reference Rust's future implementation and Tokio's scheduler implementation.
 
   some = scores[3:7]
   ```
+
+  #### SELF-REFERENCING OBJECT ISSUE
+
+  TODO(appcypher): How does Raccoon handle self-referential structs getting passed around by value in memory? A potential solution is to detect them and "Pin" so they are not possible to pass by value.
 
 ##### REFERENCES
 
