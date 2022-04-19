@@ -195,7 +195,7 @@ print(point1 + point2)
 Generics are useful for restricting an interface contract further because it allows certain conditional semantics that a developer may desire.
 
 ```py
-@where(T: < Seq, U: < Seq) # Reads as where T is a subtype of Seq. Speculative syntax and type.
+@where(T: Seq, U: Seq) # Reads as where T implements Seq and U implements Seq. Speculative syntax and type.
 def any_common_elements(l: T, r: U) -> bool:
     for (a, b) in zip(a, b):
         if a == b:
@@ -259,6 +259,31 @@ data class C(x: int)
 
 This means type `C` can pass where `A & B` is expected even though `B` has its `x` field in a different position from a data layout perspective.
 
+# Abstract Classes
+
+Unlike Python, Raccoon uses abstract classes to define common behaviors rather than magic method. And the reason for this is because magic methods are too limiting. This does not however mean that Raccoon does not support magic methods. It allows them where they make sense and treats them as syntax sugar.
+
+NOTE: This part is not done yet.
+
+```py
+@implements(Del, Str)
+data class Foo(value: str):
+    def str(self) -> str:
+        return f"Foo(value = {self.value})"
+
+    def del(self):
+        print("Dropping")
+```
+
+```py
+data class Foo(value: str):
+    def __str__(self) -> str:
+        return f"Foo(value = {self.value})"
+
+    def __del__(self):
+        print("Dropping")
+```
+
 # Union Classes
 
 Union classes are analogous to C union types. Their memory layout is determined by their largest field.
@@ -277,7 +302,7 @@ print('0x{0:x}'.format(JSNumber.int)) # 0x4000000000000000
 Enum classes are intersection types and their variants normal classes.
 
 ```py
-enum class PrimaryColor:
+enum class PrimaryColorA:
     Red(t: byte)
     Green(t: byte)
     Blue(t: byte)
@@ -289,24 +314,13 @@ enum class PrimaryColor:
 The example above can be desugared into the following:
 
 ```py
-abstract class AbstractPrimaryColor:
-    pass
+data class Red(t: byte)
+data class Green(t: byte)
+data class Blue(t: byte)
 
-@implements(AbstractPrimaryColor)
-data class Red(t: byte):
-    pass
+typealias PrimaryColorB = Red & Green & Blue
 
-@implements(AbstractPrimaryColor)
-data class Green(t: byte):
-    pass
-
-@implements(AbstractPrimaryColor)
-data class Blue(t: byte):
-    pass
-
-typealias PrimaryColor = Red & Green & Blue
-
-def to_byte(variant: PrimaryColor): # This function is monomorphisable.
+def to_byte(variant: PrimaryColorB): # This function is monomorphisable.
     return variant.t
 ```
 
@@ -315,21 +329,23 @@ The only thing we didn't capture here is the `PrimaryColor.Variant` namespace.
 In the examples above, notice that the enum's variants share a single method `to_byte` that apply to all variants. We could have also used match, which through exhaustion allows monomorphisation.
 
 ```py
-def to_byte(variant: PrimaryColor): # This function will be monomorphised.
+def to_byte(variant: PrimaryColorA): # This function will be monomorphised.
     return variant.t
+```
 
-def to_byte(variant: PrimaryColor): # This function can also be monomorphised.
-    match variant:
-       case Red(t): return t
-       case Blue(t): return t
-       case Green(t): return t
+```py
+def to_byte(variant: PrimaryColorB): # This function can also be monomorphised.
+    return match variant:
+       case Red(t): t
+       case Blue(t): t
+       case Green(t): t
 ```
 
 Because enum variants are regular classes, we can have specialized method for them.
 
 ```py
-def red_to_byte(color: PrimaryColor.Red): # This is a specialised function.
-    return color.t
+def red_to_byte(self: PrimaryColor.Red): # This is a specialised function.
+    return self.t
 ```
 
 Methods and fields accessed on an intersection type must apply to all the variants.
@@ -390,7 +406,7 @@ ls = [5, "Hello"]
 The caveat however is that, operations like the one below, that you would expect to work won't compile. The compiler cannot determine at compile-time the type of an element at particular index at compile-time, so it does an exhaustive check to make sure the `__plus__` method can be used with `int` and `str` in any argument position.
 
 ```py
-double = ls[0] + ls[0] # Error type of ls[0] can either be str or int and there is no __plus__(int, str) or __plus__(str, int)
+double = ls[0] + ls[0] # Error type of ls[0] can either be str or int and there is no Plus[int, str] or Plus[str, int]
 ```
 
 :warning: This section is unfinished and contains a rough idea of how I want things to work.
@@ -399,7 +415,7 @@ You may wonder how the compiler determines the type of a container that stores v
 
 ```py
 class Vec[T]:
-    def __init__(self, capacity: int):
+    def __init__(self, capacity: int = 10):
         self.length = 0
         self.capacity = capacity
         self.buffer = Buffer[T](capacity)
@@ -556,6 +572,48 @@ def get_person() -> Person:
 
 This is why the compiler does not provide a way to force things to stay on the stack.
 
+#### Recursive data structure issue
+
+These are data structures that contain themselves directly or indirectly. The compiler automatically adds an indirection.
+
+```py
+data class Node(parent: Node?, children: [Node])
+```
+
+The code above is transformed into the following:
+
+```py
+data class Node(parent: Box[Node?], children: [Node])
+```
+
+#### Self-referencing data structure issue
+
+These are data structures where fields reference themselves directly or indirectly. Here the compiler automatically adds an indirection.
+
+```py
+data class Context()
+
+data class Module(context: Context)
+
+class Engine:
+    def __init__(self):
+        self.context = Context()
+        self.module = Module(self.context) # Holds a reference to sibling field.
+```
+
+The code above is transformed into the following:
+
+```py
+data class Context()
+
+data class Module(context: Context)
+
+class Engine:
+    def __init__(self):
+        self.context = Box(Context())
+        self.module = Module(self.context.val)
+```
+
 # Sync and Send
 
 The concept of `Send` and `Sync` is borrowed from Rust.
@@ -596,14 +654,22 @@ class Thread:
 Inspired by Rust, Raccoon allows multiple implementations of a class as long there is no conflict.
 
 ```py
+@inherits(Bar)
+class Foo():
+    def __init__(self):
+        self.__super__()
+
+    def bar(self):
+        print("Foo.bar", self.bar)
+
 @implements(Abstract[T])
 class Foo[T]:
-    def bar(self, value: T):
+    def abstr(self, value: T):
         print(f"T = {value}")
 
 @implements(Abstract[int])
-class Foo[(string, int)]:
-    def bar(self, value: int):
+class Foo:
+    def abstr(self, value: int):
         print(f"int = {value}")
 ```
 
@@ -942,10 +1008,6 @@ Reference Rust's future implementation and Tokio's scheduler implementation.
 
   some = scores[3:7]
   ```
-
-  #### SELF-REFERENCING OBJECT ISSUE
-
-  TODO(appcypher): How does Raccoon handle self-referential structs getting passed around by value in memory? A potential solution is to detect them and "Pin" so they are not possible to pass by value.
 
 ##### REFERENCES
 

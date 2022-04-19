@@ -1,5 +1,5 @@
 [package]
-name = "raccoon_compiler"
+name = "raccoon-compiler"
 version = "0.1.0"
 edition = "2021"
 

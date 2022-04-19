@@ -34,13 +34,6 @@ class Person:
         """
         Person.population -= 1
 
-    def __str__(self):
-        """
-        Create a string representation of object
-        """
-        return f"Person(name={self.name}, age={self.age}, gender={self.gender})"
-
-
 jane = Person("Jane Doe", "Female", 23)
 print("Jane >", jane)
 ```

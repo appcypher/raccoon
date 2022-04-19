@@ -1,5 +1,5 @@
 [package]
-name = "raccoon_cli"
+name = "raccoon-cli"
 version = "0.1.0"
 edition = "2021"
 
