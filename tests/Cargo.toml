@@ -1,13 +1,13 @@
 [package]
-name = "raccoon_tests"
+name = "raccoon-tests"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-raccoon_compiler = { path = "../compiler" }
-anyhow = "0.1"
+raccoon-compiler = { path = "../compiler" }
+anyhow = "1.0.57"
 
 [lib]
 path = "lib.rs"

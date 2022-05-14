@@ -1,8 +1,8 @@
 mod errors;
-mod lexer;
+mod index;
 mod token;
 mod utils;
 
 pub use errors::*;
-pub use lexer::*;
+pub use index::*;
 pub use token::*;

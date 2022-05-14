@@ -22,23 +22,23 @@ fn map_token_result(result: Result<Token>) -> TokenResult {
 #[test]
 fn tokenize_newlines() {
     let result_macos: Vec<_> = {
-        let tmp: Vec<_> = Lexer::tokenize("\r").collect();
-        tmp.into_iter().map(map_token_result).collect()
+        let tokens = Lexer::tokenize("\r");
+        tokens.into_iter().map(map_token_result).collect()
     };
 
     let result_windows: Vec<_> = {
-        let tmp: Vec<_> = Lexer::tokenize("\r\n").collect();
-        tmp.into_iter().map(map_token_result).collect()
+        let tokens = Lexer::tokenize("\r\n");
+        tokens.into_iter().map(map_token_result).collect()
     };
 
     let result_unix: Vec<_> = {
-        let tmp: Vec<_> = Lexer::tokenize("\n").collect();
-        tmp.into_iter().map(map_token_result).collect()
+        let tokens = Lexer::tokenize("\n");
+        tokens.into_iter().map(map_token_result).collect()
     };
 
     let result_mixed: Vec<_> = {
-        let tmp: Vec<_> = Lexer::tokenize("\r\r\n\n").collect();
-        tmp.into_iter().map(map_token_result).collect()
+        let tokens = Lexer::tokenize("\r\r\n\n");
+        tokens.into_iter().map(map_token_result).collect()
     };
 
     assert_eq!(

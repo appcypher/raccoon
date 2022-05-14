@@ -106,10 +106,8 @@ impl Lexer<'_> {
         let peek_char = self.peek_char(None);
 
         // Check if the next char is not a newline.
-        if peek_char != Some('\r') || peek_char != Some('\n') {
-            if mixed_spaces {
-                return Err(LexerError::MixedSpaces(Span::new(start, self.cursor)).into());
-            }
+        if (peek_char != Some('\r') || peek_char != Some('\n')) && mixed_spaces {
+            return Err(LexerError::MixedSpaces(Span::new(start, self.cursor)).into());
         }
 
         Ok(Token::new(Newline, Span::new(start, self.cursor)))
