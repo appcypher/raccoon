@@ -1,3 +1,4 @@
-mod index;
+#![allow(clippy::module_inception)]
+mod parser;
 
-pub use index::*;
+pub use parser::*;

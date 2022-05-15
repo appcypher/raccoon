@@ -1,8 +1,9 @@
+#![allow(clippy::module_inception)]
 mod errors;
-mod index;
+mod lexer;
 mod token;
 mod utils;
 
 pub use errors::*;
-pub use index::*;
+pub use lexer::*;
 pub use token::*;
