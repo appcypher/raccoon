@@ -1,6 +1,6 @@
 [workspace]
 members = [
-	'cli',
-	'compiler',
-	'tests'
+	'raccoon-cli',
+	'raccoon-compiler',
+	'raccoon-tests'
 ]

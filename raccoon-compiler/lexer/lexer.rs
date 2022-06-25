@@ -1,6 +1,6 @@
 use crate::span::Span;
 use anyhow::Result;
-use std::str::Chars;
+use std::{iter, str::Chars};
 
 use super::errors::LexerError;
 use super::token::{Token, TokenKind::*};
@@ -39,7 +39,7 @@ impl<'a> Lexer<'a> {
             cursor: 0,
         };
 
-        std::iter::from_fn(move || lexer.advance_token())
+        iter::from_fn(move || lexer.advance_token())
     }
 
     // Returns the next character in code and advances the cursor position.
