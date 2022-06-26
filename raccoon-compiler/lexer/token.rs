@@ -17,9 +17,9 @@ pub enum TokenKind {
     Identifier { value: String },
     DecFloat { value: String },
     DecFloatImag { value: String },
-    PrefixedString { value: String },
-    ByteString { value: String },
-    String { value: String },
+    PrefixedStr { value: String },
+    ByteStr { value: String },
+    Str { value: String },
     DecInteger { value: String },
     DecIntegerImag { value: String },
     BinInteger { value: String },
@@ -27,6 +27,7 @@ pub enum TokenKind {
     HexInteger { value: String },
     Operator { value: String },
     Keyword { value: String },
+    Comment { value: String },
     Unknown,
 }
 

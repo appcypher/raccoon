@@ -99,6 +99,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "leb128"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "884e2677b40cc8c339eaefcb701c32ef1fd2493d71118dc0ca4b6a736c93bd67"
+
+[[package]]
 name = "libc"
 version = "0.2.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -173,6 +179,7 @@ name = "raccoon-compiler"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "wasm-encoder",
 ]
 
 [[package]]
@@ -226,6 +233,15 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "wasm-encoder"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de1e5cf9b74ddfb73b85e09c95ce8b5992fe32ec5200cca44a8a4e85b1095670"
+dependencies = [
+ "leb128",
+]
 
 [[package]]
 name = "winapi"
