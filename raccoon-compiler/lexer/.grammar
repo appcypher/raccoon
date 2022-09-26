@@ -36,8 +36,14 @@ short_string_char = // TODO: Define valid source characters or perhaps ignore
 long_string_char = // TODO: Define valid source characters or perhaps ignore
     | <any source character except "\">
 
-string_escape_seq = // TODO: Define valid source characters or perhaps ignore
-    | "\" <any source character>
+string_escape_seq =
+    | "\" string_escape_seq_char
+
+string_escape_seq_char =
+    | "t"
+    | "n"
+    | "r"
+    | "\"
 
 bytes_literal =
     | bytes_prefix (short_bytes | long_bytes)

@@ -7,22 +7,22 @@ use std::{iter, str::Chars};
 use super::errors::{LexerError, LexerErrorKind::*};
 use super::token::{Token, TokenKind::*};
 
-//==============================================================================
+//------------------------------------------------------------------------------
 // Type Definitions
-//==============================================================================
+//------------------------------------------------------------------------------
 
 /// An implementation of Raccoon's tokenizer.
 ///
 /// Check [`lexer.grammar`](#lexer.grammar) for the language's lexer grammar specification.
 #[derive(Debug)]
 pub struct Lexer<'a> {
-    /// The source code to be tokenized broken down into characters.
+    /// The source code to be tokenized, broken down into characters.
     pub chars: Chars<'a>,
     /// The current position in the source code.
     pub cursor: u32,
     /// The indentation type of the source code.
     pub indent_kind: IndentKind,
-    /// A stcck for maintaining indentation scopes.
+    /// A stack for maintaining indentation scopes.
     pub indent_stack: Vec<IndentationScope>,
     /// The number of spaces that represents an indentation.
     pub indent_factor: i32,
@@ -60,9 +60,9 @@ pub enum BracketKind {
     Unknown,
 }
 
-//==============================================================================
+//------------------------------------------------------------------------------
 // Implementations
-//==============================================================================
+//------------------------------------------------------------------------------
 
 impl<'a> Lexer<'a> {
     fn new(code: &'a str) -> Self {
@@ -94,8 +94,13 @@ impl<'a> Lexer<'a> {
     }
 
     // Returns the next character in code without advancing the cursor position.
-    fn peek_char(&mut self, offset: Option<u32>) -> Option<char> {
-        self.chars.clone().nth(offset.unwrap_or(0) as usize)
+    fn peek_char(&self, offset: Option<usize>) -> Option<char> {
+        self.chars.clone().nth(offset.unwrap_or(0))
+    }
+
+    // Returns subsequent `length` characters in code without advancing the cursor position.
+    fn peek_string(&self, length: usize) -> String {
+        self.chars.clone().take(length).collect::<String>()
     }
 
     // Returns the next token in the code.
@@ -120,7 +125,7 @@ impl<'a> Lexer<'a> {
                 }
                 '\r' | '\n' => {
                     // Lex newlines and indentation.
-                    match self.handle_newline(char, start) {
+                    match self.handle_newline_or_indentation(char, start) {
                         Ok(Some(token)) => Ok(token),
                         Ok(None) => {
                             // This means skip newlines if the code is in a bracket pair.
@@ -151,7 +156,12 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 '\'' => {
-                    todo!()
+                    // Lex short or long strings.
+                    self.handle_short_or_long_string(char, start, self.peek_string(2) == "''")
+                }
+                '"' => {
+                    // Lex short or long strings.
+                    self.handle_short_or_long_string(char, start, self.peek_string(2) == "\"\"")
                 }
                 _ => Ok(Token::new(Unknown, Span::new(start, start + 1))),
             };
@@ -165,7 +175,7 @@ impl<'a> Lexer<'a> {
 
 impl Lexer<'_> {
     /// Handles a newline character which can possibly lead to lexing indents and dedents.
-    fn handle_newline(&mut self, char: char, start: u32) -> Result<Option<Token>> {
+    fn handle_newline_or_indentation(&mut self, char: char, start: u32) -> Result<Option<Token>> {
         // Eat the next char if it is a Windows-native newline.
         if char == '\r' && self.peek_char(None) == Some('\n') {
             self.eat_char();
@@ -204,7 +214,7 @@ impl Lexer<'_> {
                 bail!(LexerError::new(MixedSpaces, Span::new(start, self.cursor)));
             }
 
-            // Focus on indentation that is not in brackets.
+            // Only consider indentation if not in brackets.
             if !indent_scope.within_brackets {
                 let indent_diff = space_count - indent_scope.space_count;
                 let token = match (space_count - indent_scope.space_count).cmp(&0) {
@@ -256,6 +266,22 @@ impl Lexer<'_> {
         }
 
         Ok(None)
+    }
+
+    /// Handles a short or long string.
+    fn handle_short_or_long_string(
+        &mut self,
+        char: char,
+        start: u32,
+        long_string: bool,
+    ) -> Result<Token> {
+        // Skip long string delimiter
+        if long_string {
+            self.eat_char().unwrap();
+            self.eat_char().unwrap();
+        }
+
+        todo!()
     }
 }
 

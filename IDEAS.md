@@ -43,14 +43,16 @@ Say we have an abstract class with a method that allows the implementor to retur
 abstract class Giver:
     abstract def gift(self)
 
-class StringGiver(Giver):
+class StringGiver:
     def gift(self) -> str:
         return "string gift" # Has an str return type
 
-class IntGiver(Giver):
+class IntGiver:
     def gift(self) -> int:
         return 8080 # Has an int return type
 ```
+
+Even though not explicitly stated, `IntGiver` and `StringGiver` implements the `Giver` abstract class.
 
 The abstract class can then be used as part of a function's `interface contract`.
 
@@ -128,7 +130,7 @@ def who_am_i(something):
         @returns T.__str__
     )
 
-Notice the `impl [name]` syntax. It used to refer to a field. `impl func.x` is used for methods.
+Notice the `any { name: T.__str__.0 }` syntax. It used to refer to a field. `impl func.x` is used for methods.
 
 Also notice that we use `T: any U.0` syntax for fields just like arguments because they are values that must also conform to some implementation.
 
@@ -290,15 +292,12 @@ The example above can be desugared into the following:
 abstract class AbstractPrimaryColor:
     pass
 
-@implements(AbstractPrimaryColor)
 data class Red(t: byte):
     pass
 
-@implements(AbstractPrimaryColor)
 data class Green(t: byte):
     pass
 
-@implements(AbstractPrimaryColor)
 data class Blue(t: byte):
     pass
 
@@ -340,10 +339,10 @@ enum class Option[T]:
     def unwrap(self):
         return self.t # Error because None a variant of Option[T] does not have a `t` field.
 
-    def unwrap(self):
-        match self:
-            case Some(t): return t
-            case None: panic('unwrap called on None')
+    # def unwrap(self):
+    #     match self:
+    #         case Some(t): return t
+    #         case None: panic('unwrap called on None')
 
 ```
 
@@ -554,6 +553,42 @@ def get_person() -> Person:
 
 This is why the compiler does not provide a way to force things to stay on the stack.
 
+Like stack-livability analysis, there are other cases where the compiler will auto-box an object. An example is a type that contains itself. For example,
+
+```py
+enum class BinaryNode[T]:
+    Leaf(T),
+    Link(lhs: BinaryNode, rhs: BinaryNode)
+```
+
+The size of this type cannot be determined at compile-time, if the compiler does not auto-box the recursive part of it.
+
+```py
+enum class BinaryNode[T]:
+    Leaf(T),
+    Link(lhs: Box[BinaryNode], rhs: Box[BinaryNode])
+```
+
+# Self-Referencing Types
+
+When an object references like in the example below, it cannot be relocated in the memory without causing pointer invalidation issues.
+
+```py
+class SelfReferential:
+    def __init__(self, value: str):
+        self.value = value
+        self.ref = self.value
+```
+
+Moving around this structure in memory will cause undefined behavior. So the compiler auto-boxes it to prevent it from getting moved in memory.
+
+```py
+class SelfReferential:
+    def __init__(self, value: str):
+        self.value = value
+        self.ref = Box(self.value)
+```
+
 # Sync and Send
 
 The concept of `Send` and `Sync` is borrowed from Rust.
@@ -613,9 +648,7 @@ Note the `def` part in the signature. This lets us prevent the ambiguous signatu
 
 # Closures and Captures
 
-Closures are funtions until they capture their environment. Closures that capture their environments have a different signature.
-
-They are essentially a class with an associated function.
+Closures can capture their environments. They are represented as a class with capture state and an associated function.
 
 ```py
 @where(F: def(T) -> U)
@@ -629,16 +662,12 @@ lis = [1, 2, 3].iter().map(lambda i: sum(arr) + i)
 
 In the example above, the first lambda implements `impl def(int) -> int`.
 
-The second one captures a variable from a parent scope, so it implements `impl Closure[[int], impl def([int], int) -> int]`.
-
-A concrete type is contructed for it like this:
+A singleton type is contructed for it like this:
 
 ```py
-@where(A: Iter[int], C: Closure[A, def(A, int) -> int])
-class UniqueClosure[A, C]:
-    def __init__(self, capture: A, fn: F):
-        self.capture = capture
-        self.fn = fn
+class Closure_2F5AD8:
+    capture: ([int],)
+    fn: def(([int],), int) -> int
 
     def __call__(self, i):
         self.fn(self.capture, i)
@@ -651,6 +680,10 @@ lis = [1, 2, 3].iter().map(UniqueClosure(arr, lambda capture, i: sum(capture) + 
 ```
 
 This idea of desugaring to concrete types is also explored with coroutines and async/await.
+
+# Futures, Streams, Generators
+
+These are implemented as state machine like in Rust.
 
 # Exceptions vs Result Enums
 
@@ -706,14 +739,6 @@ Unlike Python, Raccoon panics for incidences like division by zero rather than r
 ```py
 result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python, it panics instead.
 ```
-
-# Async / Await
-
-Should have similar semantics as coroutines in the language but instead of yielding to the user, it yields to the executor.
-
-The standard library should provide a nice default multithreaded task scheduler just like it does with heap allocator.
-
-Reference Rust's future implementation and Tokio's scheduler implementation.
 
 # Garbage Collection
 
@@ -872,7 +897,7 @@ Reference Rust's future implementation and Tokio's scheduler implementation.
   ```
 
   In this case, the compiler lays out how the inner function frames of `foo` should deallocate `foo`'s transferred objects. `stack_livable_ptr_address` is the address of the stack-livable pointer pointing to the heap. We don't actually hold heap addresses because of invalidation that can take place.
-  
+
   #### HOW IT PREVENTS REFERENCE CYCLES
 
   The compiler tracks every object in the program just like ARC, but unlike ARC tracks all the objects a **name** is refers to. This includes internal references (i.e. fields) of the name. The compiler decrements all the associated object rc when the **name** lifetime ends. The counting is done at compile-time so there is no runtime aspect to it.
