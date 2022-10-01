@@ -1,8 +1,8 @@
+use crate::span::Span;
+
+use super::{lexer::Lexer, LexerError, LexerErrorKind::*, Token, TokenKind::*};
+
 use anyhow::Result;
-use raccoon_compiler::{
-    lexer::{Lexer, LexerError, LexerErrorKind::*, Token, TokenKind::*},
-    span::Span,
-};
 
 // This is a custom result type for testing purpose.
 // anyhow::Result does not implement PartialEq so it cannot be used in tests.

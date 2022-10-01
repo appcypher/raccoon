@@ -1,6 +1,16 @@
+[package]
+name = "raccoon"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "raccoonc"
+path = "src/bin/raccoonc.rs"
+
+[dependencies]
+clap = { version = "3.1.0", features = ["derive"] }
+
 [workspace]
 members = [
-	'raccoon-cli',
-	'raccoon-compiler',
-	'raccoon-tests'
+	'crates/compiler',
 ]

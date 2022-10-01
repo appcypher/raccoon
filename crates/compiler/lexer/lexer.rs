@@ -13,7 +13,7 @@ use super::token::{Token, TokenKind::*};
 
 /// An implementation of Raccoon's tokenizer.
 ///
-/// Check [`lexer.grammar`](#lexer.grammar) for the language's lexer grammar specification.
+/// Check [`.grammar`](#.grammar) for the language's lexer grammar specification.
 #[derive(Debug)]
 pub struct Lexer<'a> {
     /// The source code to be tokenized, broken down into characters.
@@ -30,7 +30,8 @@ pub struct Lexer<'a> {
     pub token_buffer: Vec<Token>,
 }
 
-/// Represents an indentation scope usually introduced by having an indentation-conserving block within possibly nested brackets.
+/// Represents an indentation scope usually introduced by having an indentation-preserving
+/// block within possibly nested brackets.
 #[derive(Debug)]
 pub struct IndentationScope {
     /// The current space count.
@@ -271,8 +272,8 @@ impl Lexer<'_> {
     /// Handles a short or long string.
     fn handle_short_or_long_string(
         &mut self,
-        char: char,
-        start: u32,
+        _char: char,
+        _start: u32,
         long_string: bool,
     ) -> Result<Token> {
         // Skip long string delimiter
