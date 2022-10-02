@@ -120,7 +120,6 @@ float_number =
 
 point_float =
     | digit_part? fraction
-    | digit_part "."
 
 exponent_float =
     | (digit_part | point_float) exponent
@@ -129,7 +128,7 @@ digit_part =
     | digit ("_"? digit)*
 
 fraction =
-    | "." digit_part
+    | "." digit_part exponent?
 
 exponent =
     | "e" ("+" | "-")? digit_part

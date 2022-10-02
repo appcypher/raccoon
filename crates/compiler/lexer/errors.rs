@@ -12,7 +12,10 @@ pub enum LexerErrorKind {
     UnknownIndent,
     MixedIndentFactors,
     InconsistentDedent,
-    InvalidLineContinuationEscapeSequence
+    InvalidInBracketDedent,
+    UnterminatedString,
+    InvalidStringEscapeSequence,
+    InvalidLineContinuationEscapeSequence,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

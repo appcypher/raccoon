@@ -1,6 +1,3 @@
-newline =
-    | newline
-
 indent =
     | indent
 
@@ -396,7 +393,7 @@ import_statement =
     | import_from
 
 decorator_statement =
-    | '@' path ('(' arguments ')')? newline
+    | '@' path ('(' arguments ')')?
 
 decorators =
     | decorator_statement+
@@ -435,8 +432,5 @@ statement =
     | compound_statement
     | simple_statement
 
-statements =
-    | (newline | statement)+
-
 program =
-    | statements?
+    | statement*

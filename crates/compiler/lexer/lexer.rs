@@ -6,6 +6,7 @@ use std::{iter, str::Chars};
 
 use super::errors::{LexerError, LexerErrorKind::*};
 use super::token::{Token, TokenKind::*};
+use super::TokenKind;
 
 //------------------------------------------------------------------------------
 // Type Definitions
@@ -22,26 +23,34 @@ pub struct Lexer<'a> {
     pub cursor: u32,
     /// The indentation type of the source code.
     pub indent_kind: IndentKind,
-    /// A stack for maintaining indentation scopes.
-    pub indent_stack: Vec<IndentationScope>,
+    /// A stack for maintaining indentation/bracket scopes.
+    pub scope_stack: Vec<Scope>,
     /// The number of spaces that represents an indentation.
     pub indent_factor: i32,
     /// Token buffer for tokens like consecutive Dedents that makes sense to be lexed together.
     pub token_buffer: Vec<Token>,
 }
 
-/// Represents an indentation scope usually introduced by having an indentation-preserving
-/// block within possibly nested brackets.
+/// Represents a scope that can be introduced by an indentation-preserving block or a indentation-ignoring bracket.
 #[derive(Debug)]
-pub struct IndentationScope {
-    /// The current space count.
-    pub space_count: i32,
-    /// The number of spaces this indentation scope started with.
-    pub start_space_count: i32,
-    /// The bracket kind that initiated this indentation.
-    pub bracket_kind: BracketKind,
-    /// If another un-closed bracket has been encountered in this indentation scope.
-    pub within_brackets: bool,
+pub enum Scope {
+    /// An indentation scope.
+    Indent {
+        /// The indentation count this scope started at.
+        start_space_count: i32,
+        /// The current space count.
+        space_count: i32,
+    },
+    /// A bracket scope that ignores indentation and dedentations.
+    /// Dedents that are lesser or equal to the scope start count cause an error.
+    Bracket {
+        /// The indentation count this scope started at.
+        start_space_count: i32,
+        /// The bracket kind that initiated this scope.
+        kind: BracketKind,
+    },
+    /// This is the top-level scope and it is neither indented or in brackets
+    Initial,
 }
 
 #[derive(PartialEq, Debug)]
@@ -58,7 +67,6 @@ pub enum BracketKind {
     Parens,
     SquareBraces,
     SquigglyBraces,
-    Unknown,
 }
 
 //------------------------------------------------------------------------------
@@ -71,7 +79,7 @@ impl<'a> Lexer<'a> {
             chars: code.chars(),
             cursor: 0,
             indent_kind: IndentKind::Unknown,
-            indent_stack: vec![IndentationScope::default()],
+            scope_stack: vec![Scope::Initial],
             indent_factor: 0,
             token_buffer: Vec::new(),
         }
@@ -128,10 +136,7 @@ impl<'a> Lexer<'a> {
                     // Lex newlines and indentation.
                     match self.handle_newline_or_indentation(char, start) {
                         Ok(Some(token)) => Ok(token),
-                        Ok(None) => {
-                            // This means skip newlines if the code is in a bracket pair.
-                            continue;
-                        }
+                        Ok(None) => continue,
                         Err(err) => Err(err),
                     }
                 }
@@ -163,6 +168,25 @@ impl<'a> Lexer<'a> {
                 '"' => {
                     // Lex short or long strings.
                     self.handle_short_or_long_string(char, start, self.peek_string(2) == "\"\"")
+                }
+                '.' => {
+                    // Lex float or dot operator.
+                    match self.peek_char(None) {
+                        Some('0'..='9') => {
+                            let char = self.eat_char().unwrap();
+                            self.handle_float_fraction_part(char, start)
+                        }
+                        _ => Ok(Token::new(
+                            Operator(".".into()),
+                            Span::new(start, self.cursor),
+                        )),
+                    }
+                }
+                '0' => {
+                    todo!()
+                }
+                '1'..='9' => {
+                    todo!()
                 }
                 _ => Ok(Token::new(Unknown, Span::new(start, start + 1))),
             };
@@ -200,10 +224,10 @@ impl Lexer<'_> {
         }
 
         let peek_char = self.peek_char(None);
-        let indent_scope = self.indent_stack.last_mut().unwrap();
+        let scope = self.scope_stack.last_mut().unwrap();
 
-        // Check if the next char is not a newline.
-        if !matches!(peek_char, Some('\r') | Some('\n')) && prev_space.is_some() {
+        // Check if the next char is not a newline or comment delimiter.
+        if !matches!(peek_char, Some('\r') | Some('\n') | Some('#')) && prev_space.is_some() {
             // Check if spaces aren't mixed.
             if mixed_spaces {
                 bail!(LexerError::new(MixedSpaces, Span::new(start, self.cursor)));
@@ -215,55 +239,67 @@ impl Lexer<'_> {
                 bail!(LexerError::new(MixedSpaces, Span::new(start, self.cursor)));
             }
 
-            // Only consider indentation if not in brackets.
-            if !indent_scope.within_brackets {
-                let indent_diff = space_count - indent_scope.space_count;
-                let token = match (space_count - indent_scope.space_count).cmp(&0) {
-                    Ordering::Greater => {
-                        // An indentation.
-                        // Check if it is the first indentation.
-                        if self.indent_factor == 0 {
-                            self.indent_factor = indent_diff;
-                            self.indent_kind = space_kind;
-                        } else if self.indent_factor != indent_diff {
-                            bail!(LexerError::new(
-                                MixedIndentFactors,
-                                Span::new(start, self.cursor)
-                            ));
-                        }
+            match scope {
+                Scope::Indent {
+                    space_count: scope_space_count,
+                    ..
+                } => {
+                    let indent_diff = space_count - *scope_space_count;
+                    let token = match (space_count - *scope_space_count).cmp(&0) {
+                        Ordering::Greater => {
+                            // An indentation.
+                            // Check if it is the first indentation.
+                            if self.indent_factor == 0 {
+                                self.indent_factor = indent_diff;
+                                self.indent_kind = space_kind;
+                            } else if self.indent_factor != indent_diff {
+                                bail!(LexerError::new(
+                                    MixedIndentFactors,
+                                    Span::new(start, self.cursor)
+                                ));
+                            }
 
-                        Token::new(Indent, Span::new(start, self.cursor))
+                            Some(Token::new(Indent, Span::new(start, self.cursor)))
+                        }
+                        Ordering::Less => {
+                            // A dedentation.
+                            let indent_diff_abs = indent_diff.abs();
+                            if indent_diff_abs % self.indent_factor != 0 {
+                                bail!(LexerError::new(
+                                    InconsistentDedent,
+                                    Span::new(start, self.cursor)
+                                ))
+                            }
+
+                            // Add dedents in token buffer except the last.
+                            for _ in 1..(indent_diff_abs / self.indent_factor) {
+                                self.token_buffer
+                                    .push(Token::new(Dedent, Span::new(start, self.cursor)));
+                            }
+
+                            Some(Token::new(Dedent, Span::new(start, self.cursor)))
+                        }
+                        Ordering::Equal => None,
+                    };
+
+                    // Update the indentation space count.
+                    *scope_space_count = space_count;
+
+                    return Ok(token);
+                }
+                Scope::Bracket {
+                    start_space_count, ..
+                } => {
+                    // Check if there is no dedent that is equal or lesser than the scope itself.
+                    if space_count <= *start_space_count {
+                        bail!(LexerError::new(
+                            InvalidInBracketDedent,
+                            Span::new(start, self.cursor)
+                        ));
                     }
-                    Ordering::Less => {
-                        // A dedentation.
-                        let indent_diff_abs = indent_diff.abs();
-                        if indent_diff_abs % self.indent_factor != 0 {
-                            bail!(LexerError::new(
-                                InconsistentDedent,
-                                Span::new(start, self.cursor)
-                            ))
-                        }
-
-                        // Add dedents in token buffer except the last.
-                        for _ in 1..(indent_diff_abs / self.indent_factor) {
-                            self.token_buffer
-                                .push(Token::new(Dedent, Span::new(start, self.cursor)));
-                        }
-
-                        Token::new(Dedent, Span::new(start, self.cursor))
-                    }
-                    Ordering::Equal => Token::new(Newline, Span::new(start, self.cursor)),
-                };
-
-                // Update the indentation space count.
-                indent_scope.space_count = space_count;
-                return Ok(Some(token));
-            }
-        }
-
-        // Skip indentations and newlines when inside brackets.
-        if !indent_scope.within_brackets {
-            return Ok(Some(Token::new(Newline, Span::new(start, self.cursor))));
+                }
+                _ => (),
+            };
         }
 
         Ok(None)
@@ -272,8 +308,8 @@ impl Lexer<'_> {
     /// Handles a short or long string.
     fn handle_short_or_long_string(
         &mut self,
-        _char: char,
-        _start: u32,
+        char: char,
+        start: u32,
         long_string: bool,
     ) -> Result<Token> {
         // Skip long string delimiter
@@ -282,7 +318,95 @@ impl Lexer<'_> {
             self.eat_char().unwrap();
         }
 
-        todo!()
+        let mut string = String::new();
+        loop {
+            match self.peek_char(None) {
+                Some(peek_char) => {
+                    if peek_char == char {
+                        // Handle delimiter.
+                        self.eat_char();
+
+                        // Check for long string delimiter.
+                        if long_string && self.peek_string(2) != format!("{char}{char}") {
+                            bail!(LexerError::new(
+                                UnterminatedString,
+                                Span::new(start, self.cursor)
+                            ));
+                        } else {
+                            self.eat_char();
+                            self.eat_char();
+                        };
+
+                        break;
+                    } else if peek_char == '\\' {
+                        // Handle escape sequences.
+                        self.eat_char();
+
+                        match self.peek_char(None) {
+                            Some('r') => {
+                                self.eat_char();
+                                string.push('\r');
+                            }
+                            Some('t') => {
+                                self.eat_char();
+                                string.push('\t');
+                            }
+                            Some('n') => {
+                                self.eat_char();
+                                string.push('\n');
+                            }
+                            Some('\\') => {
+                                self.eat_char();
+                                string.push('\\');
+                            }
+                            _ => bail!(LexerError::new(
+                                InvalidStringEscapeSequence,
+                                Span::new(start, self.cursor)
+                            )),
+                        }
+                    } else {
+                        string.push(self.eat_char().unwrap());
+                    }
+                }
+                None => bail!(LexerError::new(
+                    UnterminatedString,
+                    Span::new(start, self.cursor)
+                )),
+            }
+        }
+
+        Ok(Token::new(
+            TokenKind::Str(string),
+            Span::new(start, self.cursor),
+        ))
+    }
+
+    /// Handles float fraction part
+    fn handle_float_fraction_part(
+        &mut self,
+        char: char,
+        start: u32,
+    ) -> Result<Token, anyhow::Error> {
+        let mut float = format!("0.{char}");
+
+        while matches!(self.peek_char(None), Some('0'..='9')) {
+            float.push(self.eat_char().unwrap());
+        }
+
+        // What about the exponent?
+        if matches!(self.peek_char(None), Some('e' | 'E')) {
+            float.push(self.eat_char().unwrap());
+
+            if matches!(self.peek_char(None), Some('-' | '+')) {
+                float.push(self.eat_char().unwrap());
+            }
+
+            while matches!(self.peek_char(None), Some('0'..='9')) {
+                float.push(self.eat_char().unwrap());
+            }
+        }
+
+        Ok(Token::new(DecFloat(float), Span::new(start, self.cursor)))
     }
 }
 
@@ -292,17 +416,6 @@ impl From<char> for IndentKind {
             ' ' => IndentKind::Space,
             '\t' => IndentKind::Tab,
             _ => IndentKind::Unknown,
-        }
-    }
-}
-
-impl Default for IndentationScope {
-    fn default() -> Self {
-        IndentationScope {
-            space_count: 0,
-            within_brackets: false,
-            start_space_count: 0,
-            bracket_kind: BracketKind::Unknown,
         }
     }
 }
