@@ -96,7 +96,7 @@ oct_integer =
 hex_integer =
     | "0x" ("_"? hex_digit)+
 
-nonzerodigit =
+non_zero_digit =
     | [1-9]
 
 digit =
@@ -128,10 +128,10 @@ digit_part =
     | digit ("_"? digit)*
 
 fraction =
-    | "." digit_part exponent?
+    | "." digit_part
 
 exponent =
-    | "e" ("+" | "-")? digit_part
+    | ("e" | "E") ("+" | "-")? digit_part
 
 imag_number =
     | (float_number | digit_part) "im"

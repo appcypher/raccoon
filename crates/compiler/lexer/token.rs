@@ -10,6 +10,7 @@ pub struct Token {
 /// The valid kinds of token.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenKind {
+    Newline,
     Indent,
     Dedent,
     Delimiter,
@@ -27,7 +28,6 @@ pub enum TokenKind {
     Operator(String),
     Keyword(String),
     Comment(String),
-    Unknown,
 }
 
 impl Token {

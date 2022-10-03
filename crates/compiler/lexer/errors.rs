@@ -16,6 +16,16 @@ pub enum LexerErrorKind {
     UnterminatedString,
     InvalidStringEscapeSequence,
     InvalidLineContinuationEscapeSequence,
+    MissingDigitPartInFloatFraction,
+    MissingDigitPartInFloatExponent,
+    MissingDigitPartInBinInteger,
+    MissingDigitPartInOctInteger,
+    MissingDigitPartInDecInteger,
+    MissingDigitPartInHexInteger,
+    InvalidDigitInInteger,
+    InvalidCharacterAfterUnderscoreInDigitPart,
+    InvalidLeadingZeroInDecInteger,
+    InvalidCharacter,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
