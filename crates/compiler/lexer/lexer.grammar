@@ -10,7 +10,6 @@ string_literal =
 
 string_prefix =
     | "r"
-    | "u"
     | "f"
     | "rf"
 
@@ -131,7 +130,7 @@ fraction =
     | "." digit_part
 
 exponent =
-    | ("e" | "E") ("+" | "-")? digit_part
+    | "e" ("+" | "-")? digit_part
 
 imag_number =
     | (float_number | digit_part) "im"
@@ -155,7 +154,6 @@ operator =
     | ">="
     | "=="
     | "!="
-    | "||"
     | "**"
     | "²"
     | "√"

@@ -14,7 +14,6 @@ pub enum LexerErrorKind {
     InconsistentDedent,
     InvalidInBracketDedent,
     UnterminatedString,
-    InvalidStringEscapeSequence,
     InvalidLineContinuationEscapeSequence,
     MissingDigitPartInFloatFraction,
     MissingDigitPartInFloatExponent,
@@ -25,7 +24,9 @@ pub enum LexerErrorKind {
     InvalidDigitInInteger,
     InvalidCharacterAfterUnderscoreInDigitPart,
     InvalidLeadingZeroInDecInteger,
+    InvalidCharacterInByteString,
     InvalidCharacter,
+    InvalidOperator
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
