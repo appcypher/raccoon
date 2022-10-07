@@ -9,5 +9,9 @@ edition = "2021"
 anyhow = "1.0.57"
 wasm-encoder = "0.3"
 
+[dev-dependencies]
+proptest = "1.0.0"
+test-strategy = "0.2.0"
+
 [lib]
 path = "lib.rs"

@@ -23,10 +23,10 @@ pub struct Lexer<'a> {
     pub cursor: u32,
     /// The indentation type of the source code.
     pub indent_kind: IndentKind,
-    /// A stack for maintaining indentation/bracket scopes.
-    pub scope_stack: Vec<Scope>,
-    /// The number of spaces that represents an indentation.
-    pub indent_factor: i32,
+    /// The current indentation level.
+    pub indent_level: i32,
+    /// The number of spaces that make up an indent or dedent.
+    pub indent_size: i32,
     /// Token buffer for tokens like consecutive Dedents that makes sense to be lexed together.
     pub token_buffer: Vec<Token>,
 }
@@ -88,8 +88,8 @@ impl<'a> Lexer<'a> {
             chars: code.chars(),
             cursor: 0,
             indent_kind: IndentKind::Unknown,
-            scope_stack: vec![Scope::Initial],
-            indent_factor: 0,
+            indent_level: 0,
+            indent_size: 0,
             token_buffer: Vec::new(),
         }
     }
@@ -158,11 +158,7 @@ impl<'a> Lexer<'a> {
                 }
                 '\r' | '\n' => {
                     // Lex newlines and indentation.
-                    match self.tokenize_newline_or_indentation(char, start) {
-                        Ok(Some(token)) => Ok(token),
-                        Ok(None) => continue,
-                        Err(err) => Err(err),
-                    }
+                    self.tokenize_newline_or_indentation(char, start)
                 }
                 '#' => {
                     // Skip single line comments.
@@ -741,34 +737,36 @@ impl<'a> Lexer<'a> {
 /// Tokenizer functions.
 impl Lexer<'_> {
     /// Tokenizes a newline character which can possibly lead to lexing indents and dedents.
-    fn tokenize_newline_or_indentation(&mut self, char: char, start: u32) -> Result<Option<Token>> {
+    fn tokenize_newline_or_indentation(&mut self, char: char, start: u32) -> Result<Token> {
         // Eat the next char if it is a Windows-native newline.
         if char == '\r' && self.peek_char() == Some('\n') {
             self.eat_char();
         }
 
         let mut space_count = 0;
-        let mut prev_space = None;
         let mut mixed_spaces = false;
 
         // Count the number of spaces and detect mixed space types.
+        let mut prev_space = None;
         while matches!(self.peek_char(), Some(' ') | Some('\t')) {
-            let current_space = self.eat_char();
+            let space = self.eat_char();
 
             // Check if spaces match.
-            if space_count > 0 && current_space != prev_space {
+            if prev_space.is_some() && space != prev_space {
                 mixed_spaces = true;
             }
 
-            prev_space = current_space;
+            prev_space = space;
             space_count += 1;
         }
 
-        let peek_char = self.peek_char();
-        let scope = self.scope_stack.last_mut().unwrap();
+        let prev_space_count = self.indent_level * self.indent_size;
+        let indent_diff = space_count - prev_space_count;
+        let indent_diff_abs = indent_diff.abs();
 
         // Check if the next char is not a newline or comment delimiter.
-        if !matches!(peek_char, Some('\r') | Some('\n') | Some('#')) && prev_space.is_some() {
+        let peek_char = self.peek_char();
+        if space_count > 0 && !matches!(peek_char, Some('\r') | Some('\n') | Some('#')) {
             // Check if spaces aren't mixed.
             if mixed_spaces {
                 bail!(LexerError::new(MixedSpaces, Span::new(start, self.cursor)));
@@ -776,71 +774,68 @@ impl Lexer<'_> {
 
             // Check spaces remain consistent between indents.
             let space_kind: IndentKind = prev_space.unwrap().try_into()?;
-            if space_kind != self.indent_kind {
-                bail!(LexerError::new(MixedSpaces, Span::new(start, self.cursor)));
+            if self.indent_kind != IndentKind::Unknown && space_kind != self.indent_kind {
+                bail!(LexerError::new(
+                    InconsistentIndent,
+                    Span::new(start, self.cursor)
+                ));
             }
 
-            match scope {
-                Scope::Indent {
-                    space_count: old_space_count,
-                    ..
-                } => {
-                    let indent_diff = space_count - *old_space_count;
-                    let token = match (space_count - *old_space_count).cmp(&0) {
-                        Ordering::Greater => {
-                            // An indentation.
-                            // Check if it is the first indentation.
-                            if self.indent_factor == 0 {
-                                self.indent_factor = indent_diff;
-                                self.indent_kind = space_kind;
-                            } else if self.indent_factor != indent_diff {
-                                bail!(LexerError::new(
-                                    MixedIndentFactors,
-                                    Span::new(start, self.cursor)
-                                ));
-                            }
-
-                            Some(Token::new(Indent, Span::new(start, self.cursor)))
-                        }
-                        Ordering::Less => {
-                            // A dedentation.
-                            let indent_diff_abs = indent_diff.abs();
-                            if indent_diff_abs % self.indent_factor != 0 {
-                                bail!(LexerError::new(
-                                    InconsistentDedent,
-                                    Span::new(start, self.cursor)
-                                ))
-                            }
-
-                            // Add dedents in token buffer except the last.
-                            for _ in 1..(indent_diff_abs / self.indent_factor) {
-                                self.token_buffer
-                                    .push(Token::new(Dedent, Span::new(start, self.cursor)));
-                            }
-
-                            Some(Token::new(Dedent, Span::new(start, self.cursor)))
-                        }
-                        Ordering::Equal => None,
-                    };
-
-                    // Update the indentation space count.
-                    *old_space_count = space_count;
-
-                    return Ok(token);
-                }
-                Scope::Bracket {
-                    start_space_count, ..
-                } => {
-                    // Check if there is no dedent that is equal or lesser than the scope itself.
-                    if space_count <= *start_space_count {
+            match (space_count - prev_space_count).cmp(&0) {
+                Ordering::Greater => {
+                    // An indentation.
+                    // Check if it is the first indentation.
+                    if self.indent_size == 0 {
+                        self.indent_size = indent_diff;
+                        self.indent_kind = space_kind;
+                    } else if self.indent_size != indent_diff {
                         bail!(LexerError::new(
-                            InvalidInBracketDedent,
+                            MixedIndentSizes,
                             Span::new(start, self.cursor)
                         ));
                     }
+
+                    self.indent_level = space_count / self.indent_size;
+
+                    return Ok(Token::new(Indent, Span::new(start, self.cursor)));
+                }
+                Ordering::Less => {
+                    // A dedentation.
+                    if indent_diff % self.indent_size != 0 {
+                        bail!(LexerError::new(
+                            InconsistentDedent,
+                            Span::new(start, self.cursor)
+                        ))
+                    }
+
+                    // Add dedents in token buffer except the last.
+                    for _ in 1..(indent_diff_abs / self.indent_size) {
+                        self.token_buffer
+                            .push(Token::new(Dedent, Span::new(start, self.cursor)));
+                    }
+
+                    self.indent_level = space_count / self.indent_size;
+
+                    return Ok(Token::new(Dedent, Span::new(start, self.cursor)));
+                }
+                Ordering::Equal => (),
+            };
+        } else if peek_char == None {
+            // If the code ends with a newline, calculate dedents.
+            match indent_diff.cmp(&0) {
+                Ordering::Less => {
+                    // Add dedents in token buffer except the last.
+                    for _ in 1..(indent_diff_abs / self.indent_size) {
+                        self.token_buffer
+                            .push(Token::new(Dedent, Span::new(start, self.cursor)));
+                    }
+
+                    self.indent_level = space_count / self.indent_size;
+
+                    return Ok(Token::new(Dedent, Span::new(start, self.cursor)));
                 }
                 _ => (),
-            };
+            }
         }
 
         Ok(Token::new(Newline, Span::new(start, self.cursor)).into())

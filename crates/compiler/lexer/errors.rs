@@ -9,8 +9,9 @@ use crate::span::Span;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LexerErrorKind {
     MixedSpaces,
+    InconsistentIndent,
     UnknownIndent,
-    MixedIndentFactors,
+    MixedIndentSizes,
     InconsistentDedent,
     InvalidInBracketDedent,
     UnterminatedString,
