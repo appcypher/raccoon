@@ -54,6 +54,8 @@ class IntGiver:
         return 8080 # Has an int return type
 ```
 
+Even though not explicitly stated, `IntGiver` and `StringGiver` implements the `Giver` abstract class.
+
 The abstract class can then be used as part of a function's `interface contract`.
 
 ```py
@@ -130,7 +132,7 @@ def who_am_i(something):
         @returns T.__str__
     )
 
-Notice the `impl [name]` syntax. It used to refer to a field. `impl func.x` is used for methods.
+Notice the `any { name: T.__str__.0 }` syntax. It used to refer to a field. `impl func.x` is used for methods.
 
 Also notice that we use `T: any U.0` syntax for fields just like arguments because they are values that must also conform to some implementation.
 
@@ -358,10 +360,10 @@ enum class Option[T]:
     def unwrap(self):
         return self.t # Error because None a variant of Option[T] does not have a `t` field.
 
-    def unwrap(self):
-        match self:
-            case Some(t): return t
-            case None: panic('unwrap called on None')
+    # def unwrap(self):
+    #     match self:
+    #         case Some(t): return t
+    #         case None: panic('unwrap called on None')
 
 ```
 
@@ -767,6 +769,10 @@ for i in ListIterator([1, 2, 3, 4, 5]):
     print(i)
 ```
 
+# Futures, Streams, Generators
+
+These are implemented as state machine like in Rust.
+
 # Exceptions vs Result Enums
 
 Raccoon supports execeptions just because users coming from Python will have the presumption that Raccoon should have it.
@@ -822,14 +828,6 @@ Unlike Python, Raccoon panics for incidences like division by zero rather than r
 ```py
 result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python, it panics instead.
 ```
-
-# Async / Await
-
-Should have similar semantics as coroutines in the language but instead of yielding to the user, it yields to the executor.
-
-The standard library should provide a nice default multithreaded task scheduler just like it does with heap allocator.
-
-Reference Rust's future implementation and Tokio's scheduler implementation.
 
 # Garbage Collection
 

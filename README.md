@@ -12,7 +12,7 @@
 
 Raccoon compiler implementation generates WebAssembly code.
 
-Below is an example of what Raccoon looks like:
+Below is an example of what Raccoon currently looks like:
 
 ```py
 class Person:
@@ -22,18 +22,32 @@ class Person:
 
     population = 0
 
-    def __init__(self, name, age, gender="Male"):
+    def init(self, name, age):
+        """
+        Creates a new person
+        """
+
         self.name = name
         self.age = age
-        self.gender = gender
+
         Person.population += 1
 
-    def __del__(self):
+    def del(self):
         """
         Decrement population
         """
+
         Person.population -= 1
 
-jane = Person("Jane Doe", "Female", 23)
-print("Jane >", jane)
+    def debug(self, f):
+        """
+        Create a string representation of object
+        """
+
+        return f.debug_class("Person")
+            .field("name", self.name)
+            .field("age", self.age)
+
+jane = Person("Jane Doe", 23)
+print("jane =", jane)
 ```

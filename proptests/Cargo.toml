@@ -1,0 +1,12 @@
+[package]
+name = "raccoon-proptests"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[dev-dependencies]
+proptest = "1.0.0"
+test-strategy = "0.2.0"
+raccoon-compiler = { path = "../crates/compiler" }
