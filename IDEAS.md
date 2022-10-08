@@ -43,10 +43,12 @@ Say we have an abstract class with a method that allows the implementor to retur
 abstract class Giver:
     abstract def gift(self)
 
+@implements(Giver)
 class StringGiver:
     def gift(self) -> str:
         return "string gift" # Has an str return type
 
+@implements(Giver)
 class IntGiver:
     def gift(self) -> int:
         return 8080 # Has an int return type
@@ -195,7 +197,7 @@ print(point1 + point2)
 Generics are useful for restricting an interface contract further because it allows certain conditional semantics that a developer may desire.
 
 ```py
-@where(T: < Seq, U: < Seq) # Reads as where T is a subtype of Seq. Speculative syntax and type.
+@where(T: Seq, U: Seq) # Reads as where T implements Seq and U implements Seq. Speculative syntax and type.
 def any_common_elements(l: T, r: U) -> bool:
     for (a, b) in zip(a, b):
         if a == b:
@@ -252,12 +254,37 @@ https://stackoverflow.com/questions/59722333/union-and-intersection-of-types/597
 Raccoon's intersection types is position-independent. This behavior is naturally expected of method members but it also applies to field members.
 
 ```py
-data class A(x: int, y: str): pass
-data class B(w: str, x: int): pass
-data class C(x: int): pass
+data class A(x: int, y: str)
+data class B(w: str, x: int)
+data class C(x: int)
 ```
 
 This means type `C` can pass where `A & B` is expected even though `B` has its `x` field in a different position from a data layout perspective.
+
+# Abstract Classes
+
+Unlike Python, Raccoon uses abstract classes to define common behaviors rather than magic method. And the reason for this is because magic methods are too limiting. This does not however mean that Raccoon does not support magic methods. It allows them where they make sense and treats them as syntax sugar.
+
+NOTE: This part is not done yet.
+
+```py
+@implements(Del, Str)
+data class Foo(value: str):
+    def str(self) -> str:
+        return f"Foo(value = {self.value})"
+
+    def del(self):
+        print("Dropping")
+```
+
+```py
+data class Foo(value: str):
+    def __str__(self) -> str:
+        return f"Foo(value = {self.value})"
+
+    def __del__(self):
+        print("Dropping")
+```
 
 # Union Classes
 
@@ -277,7 +304,7 @@ print('0x{0:x}'.format(JSNumber.int)) # 0x4000000000000000
 Enum classes are intersection types and their variants normal classes.
 
 ```py
-enum class PrimaryColor:
+enum class PrimaryColorA:
     Red(t: byte)
     Green(t: byte)
     Blue(t: byte)
@@ -289,21 +316,13 @@ enum class PrimaryColor:
 The example above can be desugared into the following:
 
 ```py
-abstract class AbstractPrimaryColor:
-    pass
+data class Red(t: byte)
+data class Green(t: byte)
+data class Blue(t: byte)
 
-data class Red(t: byte):
-    pass
+typealias PrimaryColorB = Red & Green & Blue
 
-data class Green(t: byte):
-    pass
-
-data class Blue(t: byte):
-    pass
-
-typealias PrimaryColor = Red & Green & Blue
-
-def to_byte(variant: PrimaryColor): # This function is monomorphisable.
+def to_byte(variant: PrimaryColorB): # This function is monomorphisable.
     return variant.t
 ```
 
@@ -312,21 +331,23 @@ The only thing we didn't capture here is the `PrimaryColor.Variant` namespace.
 In the examples above, notice that the enum's variants share a single method `to_byte` that apply to all variants. We could have also used match, which through exhaustion allows monomorphisation.
 
 ```py
-def to_byte(variant: PrimaryColor): # This function will be monomorphised.
+def to_byte(variant: PrimaryColorA): # This function will be monomorphised.
     return variant.t
+```
 
-def to_byte(variant: PrimaryColor): # This function can also be monomorphised.
-    match variant:
-       case Red(t): return t
-       case Blue(t): return t
-       case Green(t): return t
+```py
+def to_byte(variant: PrimaryColorB): # This function can also be monomorphised.
+    return match variant:
+       case Red(t): t
+       case Blue(t): t
+       case Green(t): t
 ```
 
 Because enum variants are regular classes, we can have specialized method for them.
 
 ```py
-def red_to_byte(color: PrimaryColor.Red): # This is a specialised function.
-    return color.t
+def red_to_byte(self: PrimaryColor.Red): # This is a specialised function.
+    return self.t
 ```
 
 Methods and fields accessed on an intersection type must apply to all the variants.
@@ -387,7 +408,7 @@ ls = [5, "Hello"]
 The caveat however is that, operations like the one below, that you would expect to work won't compile. The compiler cannot determine at compile-time the type of an element at particular index at compile-time, so it does an exhaustive check to make sure the `__plus__` method can be used with `int` and `str` in any argument position.
 
 ```py
-double = ls[0] + ls[0] # Error type of ls[0] can either be str or int and there is no __plus__(int, str) or __plus__(str, int)
+double = ls[0] + ls[0] # Error type of ls[0] can either be str or int and there is no Plus[int, str] or Plus[str, int]
 ```
 
 :warning: This section is unfinished and contains a rough idea of how I want things to work.
@@ -396,7 +417,7 @@ You may wonder how the compiler determines the type of a container that stores v
 
 ```py
 class Vec[T]:
-    def __init__(self, capacity: int):
+    def __init__(self, capacity: int = 10):
         self.length = 0
         self.capacity = capacity
         self.buffer = Buffer[T](capacity)
@@ -553,40 +574,46 @@ def get_person() -> Person:
 
 This is why the compiler does not provide a way to force things to stay on the stack.
 
-Like stack-livability analysis, there are other cases where the compiler will auto-box an object. An example is a type that contains itself. For example,
+#### Recursive data structure issue
+
+These are data structures that contain themselves directly or indirectly. The compiler automatically adds an indirection.
 
 ```py
-enum class BinaryNode[T]:
-    Leaf(T),
-    Link(lhs: BinaryNode, rhs: BinaryNode)
+data class Node(parent: Node?, children: [Node])
 ```
 
-The size of this type cannot be determined at compile-time, if the compiler does not auto-box the recursive part of it.
+The code above is transformed into the following:
 
 ```py
-enum class BinaryNode[T]:
-    Leaf(T),
-    Link(lhs: Box[BinaryNode], rhs: Box[BinaryNode])
+data class Node(parent: Box[Node?], children: [Node])
 ```
 
-# Self-Referencing Types
+#### Self-referencing data structure issue
 
-When an object references like in the example below, it cannot be relocated in the memory without causing pointer invalidation issues.
+These are data structures where fields reference themselves directly or indirectly. Here the compiler automatically adds an indirection.
 
 ```py
-class SelfReferential:
-    def __init__(self, value: str):
-        self.value = value
-        self.ref = self.value
+data class Context()
+
+data class Module(context: Context)
+
+class Engine:
+    def __init__(self):
+        self.context = Context()
+        self.module = Module(self.context) # Holds a reference to sibling field.
 ```
 
-Moving around this structure in memory will cause undefined behavior. So the compiler auto-boxes it to prevent it from getting moved in memory.
+The code above is transformed into the following:
 
 ```py
-class SelfReferential:
-    def __init__(self, value: str):
-        self.value = value
-        self.ref = Box(self.value)
+data class Context()
+
+data class Module(context: Context)
+
+class Engine:
+    def __init__(self):
+        self.context = Box(Context())
+        self.module = Module(self.context.val)
 ```
 
 # Sync and Send
@@ -608,7 +635,7 @@ Raccoon does not have an `Rc[T]` type because it uses a thread-local garbage col
 arc_total = shared 4500 # `Arc[Mutex[int]]`
 
 handler = Thread.spawn(
-    lambda:
+    def ():
         arc_total = 4300 # captured by lambda.
 )
 ```
@@ -619,67 +646,128 @@ Here, `Thread.spawn` instantiation contains a lambda that captures its environme
 
 ```py
 class Thread:
-    # ...
     @where(F: Send & def() -> void)
-    def spawn(f: F):
-        # ...
+    def spawn(fn: F):
+        pass
 ```
 
-# Function Abstract Classes
+# Multiple Implementations
 
-Each function and closure instantiation has a unique concrete type. But they all implement abstract classes based on the instantiation signature.
-
-For example, the following two function instantiations implement the same abstract class. `impl def(str, int) -> str`.
+Inspired by Rust, Raccoon allows multiple implementations of a class as long there is no conflict.
 
 ```py
-s = foo("hello", 2) # returns str
-s = bar("bar", 400) # returns str
+@inherits(Bar)
+class Foo():
+    def __init__(self):
+        self.__super__()
+
+    def bar(self):
+        print("Foo.bar", self.bar)
+
+@implements(Abstract[T])
+class Foo[T]:
+    def abstr(self, value: T):
+        print(f"T = {value}")
+
+@implements(Abstract[int])
+class Foo:
+    def abstr(self, value: int):
+        print(f"int = {value}")
 ```
 
-Just like regular abstract classes, we don't specify the `impl` part of the signature when writing the signature out.
+# Closures
+
+Inspired by Rust's closures.
 
 ```py
-async def timeout(seconds: int, cb: def() -> void):
-    await sleep(seconds)
-    cb()
+abstract class Fn[(...Args), R]:
+    def call(self, args: (...Args)) -> R
 ```
-
-Note the `def` part in the signature. This lets us prevent the ambiguous signature `cb: ()` which can be mistaken for a tuple.
-
-# Closures and Captures
-
-Closures can capture their environments. They are represented as a class with capture state and an associated function.
 
 ```py
-@where(F: def(T) -> U)
-def map[T, U, F](iter: Iter[T], f: F) -> [U]:
-    # ...
+def filter(xs: [int], fn: Fn[(int), bool]) -> [int]:
+    return [x for x in xs if fn(x)]
 
-arr = [1, 2, 3].iter().map(lambda i: i + 1)
-
-lis = [1, 2, 3].iter().map(lambda i: sum(arr) + i)
+[1, 2, 3, 4, 5].filter(def (x): x % 2 == 0)
 ```
-
-In the example above, the first lambda implements `impl def(int) -> int`.
-
-A singleton type is contructed for it like this:
 
 ```py
-class Closure_2F5AD8:
-    capture: ([int],)
-    fn: def(([int],), int) -> int
+def curry_add(x: int) -> Fn[(int), int]:
+    def add(y: int) -> int:
+        return x + y
 
-    def __call__(self, i):
-        self.fn(self.capture, i)
+    return add
+
+fn = curry_add(5)
+result = fn(10) # 15
 ```
 
-Which then desugars to:
+For the above example, `add` is a closure that captures `x`. A temporary class is created for closures that capture variables. In this case, the compiler will generate something like this.
 
 ```py
-lis = [1, 2, 3].iter().map(UniqueClosure(arr, lambda capture, i: sum(capture) + i))
+@implements(Fn[(int), int])
+class __tmp_add:
+    def __init__(x: int, fn: (int) -> int):
+        self.x = x
+        self.fn = fn
+
+    def call(self, args: (int)) -> int:
+        (y) = args
+        return self.fn(self.x, y)
 ```
 
-This idea of desugaring to concrete types is also explored with coroutines and async/await.
+# Futures / Streams
+
+Inspired by Rust's futures and streams.
+
+```py
+asbstract class Future[T]:
+    def poll(self, ctx: Context) -> Poll[T]
+
+asbstract class Stream[T]:
+    def poll_next(self, ctx: Context) -> Poll[Option[T]]
+
+enum class Poll[T]:
+    Ready(T),
+    Pending
+```
+
+```py
+@implements(Future[int])
+data class Temperature(value: int = None):
+    def poll(self, ctx: Context) -> Poll[int]:
+        if self.value is None:
+            sensor.register(def (value):
+                self.value = value
+                ctx.wake()
+            )
+            return Poll.Pending
+        else:
+            return Poll.Ready(self.value)
+```
+
+# Iterators
+
+Inspired by Rust's iterators.
+
+```py
+abstract class Iterator[T]:
+    def next(self) -> Option[T]
+```
+
+```py
+@implements(Iterator[T])
+data class ListIterator[T](xs: [T], index = 0):
+    def next(self) -> Option[T]:
+        if self.index >= len(self.xs):
+            return None
+        else:
+            self.index += 1
+            return self.xs[self.index - 1]
+
+for i in ListIterator([1, 2, 3, 4, 5]):
+    print(i)
+```
 
 # Futures, Streams, Generators
 
@@ -701,7 +789,8 @@ enum class Result[T, E]:
 As long a type implements the `Error` type, it can be used as an exception.
 
 ```py
-class SomeError(Error):
+@implements(Error)
+class SomeError:
     def __init__(self, message: str):
         super().__init__(message)
 ```

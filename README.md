@@ -21,16 +21,14 @@ class Person:
     """
 
     population = 0
-    
 
-    def init(self, name, age, gender="Non-binary"):
+    def init(self, name, age):
         """
         Creates a new person
         """
 
         self.name = name
         self.age = age
-        self.gender = gender
 
         Person.population += 1
 
@@ -49,11 +47,7 @@ class Person:
         return f.debug_class("Person")
             .field("name", self.name)
             .field("age", self.age)
-            .field("gender", self.gender)
 
-
-jane = Person("Jane Doe", 23, "Female")
-john = Person("John Doe", 21, "Male")
-
-print("persons =", jane, john)
+jane = Person("Jane Doe", 23)
+print("jane =", jane)
 ```
