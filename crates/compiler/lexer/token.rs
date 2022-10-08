@@ -24,7 +24,7 @@ pub enum TokenKind {
     Identifier(String),
     Float(String),
     Integer(String, IntegerKind),
-    Imag(String),   // TODO: Implement this
+    Imag(String),
     Str(String, StringKind),
     ByteStr(String, BytesKind),
     Op(Operator),

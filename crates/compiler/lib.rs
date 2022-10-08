@@ -6,4 +6,7 @@ pub mod span;
 pub mod ir;
 pub mod codegen;
 
+pub use lexer::Lexer;
+// pub use parser::Parser;
+
 pub use errors::*;

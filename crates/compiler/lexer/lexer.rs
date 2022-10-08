@@ -15,7 +15,6 @@ use super::{BytesKind, Delimiter, IntegerKind, Operator, StringKind, TokenKind};
 /// An implementation of Raccoon's lexer.
 ///
 /// Check [`lexer.grammar`](#lexer.grammar) for the language's lexer grammar specification.
-/// TODO(appcypher): Implement imaginary numbers.
 #[derive(Debug)]
 pub struct Lexer<'a> {
     /// The source code to be tokenized, broken down into characters.
