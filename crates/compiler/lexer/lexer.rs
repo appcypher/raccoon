@@ -15,6 +15,7 @@ use super::{BytesKind, Delimiter, IntegerKind, Operator, StringKind, TokenKind};
 /// An implementation of Raccoon's lexer.
 ///
 /// Check [`lexer.grammar`](#lexer.grammar) for the language's lexer grammar specification.
+/// TODO(appcypher): Implement imaginary numbers.
 #[derive(Debug)]
 pub struct Lexer<'a> {
     /// The source code to be tokenized, broken down into characters.
@@ -213,10 +214,20 @@ impl<'a> Lexer<'a> {
                     // Tokenize float or dot operator.
                     match self.peek_char() {
                         Some('0'..='9') => match self.lex_float_fraction(start) {
-                            Ok(string) => Ok(Token::new(
-                                Float(format!("0{string}")),
-                                Span::new(start, self.cursor),
-                            )),
+                            Ok(string) => Ok(if self.peek_string(2) == "im" {
+                                self.eat_char();
+                                self.eat_char();
+
+                                Token::new(
+                                    Imag(format!("0{string}")),
+                                    Span::new(start, self.cursor),
+                                )
+                            } else {
+                                Token::new(
+                                    Float(format!("0{string}")),
+                                    Span::new(start, self.cursor),
+                                )
+                            }),
                             Err(err) => Err(err),
                         },
                         _ => Ok(Token::new(
@@ -240,7 +251,7 @@ impl<'a> Lexer<'a> {
                                     Span::new(start, self.cursor),
                                 ))
                             } else {
-                                self.tokenize_leading_zero_dec_integer_or_float(start)
+                                self.tokenize_leading_zero_dec_integer_or_float_or_im(start)
                             }
                         }
                         Some('1'..='9') => error(LexerError::new(
@@ -250,27 +261,54 @@ impl<'a> Lexer<'a> {
                         Some('.') => {
                             self.eat_char();
                             match self.lex_float_fraction(start) {
-                                Ok(string) => Ok(Token::new(
-                                    Float(format!("0{string}")),
-                                    Span::new(start, self.cursor),
-                                )),
+                                Ok(string) => Ok(if self.peek_string(2) == "im" {
+                                    self.eat_char();
+                                    self.eat_char();
+
+                                    Token::new(
+                                        Imag(format!("0{string}")),
+                                        Span::new(start, self.cursor),
+                                    )
+                                } else {
+                                    Token::new(
+                                        Float(format!("0{string}")),
+                                        Span::new(start, self.cursor),
+                                    )
+                                }),
                                 Err(err) => Err(err),
                             }
                         }
                         Some('e' | 'E') => {
                             self.eat_char();
                             match self.lex_float_exponent(start) {
-                                Ok(string) => Ok(Token::new(
-                                    Float(format!("0{string}")),
-                                    Span::new(start, self.cursor),
-                                )),
+                                Ok(string) => Ok(if self.peek_string(2) == "im" {
+                                    self.eat_char();
+                                    self.eat_char();
+
+                                    Token::new(
+                                        Imag(format!("0{string}")),
+                                        Span::new(start, self.cursor),
+                                    )
+                                } else {
+                                    Token::new(
+                                        Float(format!("0{string}")),
+                                        Span::new(start, self.cursor),
+                                    )
+                                }),
                                 Err(err) => Err(err),
                             }
                         }
-                        _ => Ok(Token::new(
-                            Integer("0".into(), IntegerKind::Dec),
-                            Span::new(start, self.cursor),
-                        )),
+                        _ => Ok(if self.peek_string(2) == "im" {
+                            self.eat_char();
+                            self.eat_char();
+
+                            Token::new(Imag(format!("0")), Span::new(start, self.cursor))
+                        } else {
+                            Token::new(
+                                Integer("0".into(), IntegerKind::Dec),
+                                Span::new(start, self.cursor),
+                            )
+                        }),
                     }
                 }
                 '1'..='9' => {
@@ -290,33 +328,62 @@ impl<'a> Lexer<'a> {
                                     format!("{char}{char2}")
                                 };
 
-                                self.tokenize_leading_non_zero_dec_integer_or_float(string, start)
+                                self.tokenize_leading_non_zero_dec_integer_or_float_or_im(
+                                    string, start,
+                                )
                             }
                         }
                         Some('.') => {
                             self.eat_char();
                             match self.lex_float_fraction(start) {
-                                Ok(string) => Ok(Token::new(
-                                    Float(format!("{char}{string}")),
-                                    Span::new(start, self.cursor),
-                                )),
+                                Ok(string) => Ok(if self.peek_string(2) == "im" {
+                                    self.eat_char();
+                                    self.eat_char();
+
+                                    Token::new(
+                                        Imag(format!("{char}{string}")),
+                                        Span::new(start, self.cursor),
+                                    )
+                                } else {
+                                    Token::new(
+                                        Float(format!("{char}{string}")),
+                                        Span::new(start, self.cursor),
+                                    )
+                                }),
                                 Err(err) => Err(err),
                             }
                         }
                         Some('e' | 'E') => {
                             self.eat_char();
                             match self.lex_float_exponent(start) {
-                                Ok(string) => Ok(Token::new(
-                                    Float(format!("{char}{string}")),
-                                    Span::new(start, self.cursor),
-                                )),
+                                Ok(string) => Ok(if self.peek_string(2) == "im" {
+                                    self.eat_char();
+                                    self.eat_char();
+
+                                    Token::new(
+                                        Imag(format!("{char}{string}")),
+                                        Span::new(start, self.cursor),
+                                    )
+                                } else {
+                                    Token::new(
+                                        Float(format!("{char}{string}")),
+                                        Span::new(start, self.cursor),
+                                    )
+                                }),
                                 Err(err) => Err(err),
                             }
                         }
-                        _ => Ok(Token::new(
-                            Integer(format!("{char}"), IntegerKind::Dec),
-                            Span::new(start, self.cursor),
-                        )),
+                        _ => Ok(if self.peek_string(2) == "im" {
+                            self.eat_char();
+                            self.eat_char();
+
+                            Token::new(Imag(format!("{char}")), Span::new(start, self.cursor))
+                        } else {
+                            Token::new(
+                                Integer(format!("{char}"), IntegerKind::Dec),
+                                Span::new(start, self.cursor),
+                            )
+                        }),
                     }
                 }
                 'f' => {
@@ -525,10 +592,7 @@ impl<'a> Lexer<'a> {
                                     Span::new(start, self.cursor),
                                 )
                             }
-                            _ => {
-                                self.eat_char();
-                                Token::new(Op(Operator::IntDiv), Span::new(start, self.cursor))
-                            }
+                            _ => Token::new(Op(Operator::IntDiv), Span::new(start, self.cursor)),
                         }
                     }
                     Some('=') => {
@@ -548,10 +612,7 @@ impl<'a> Lexer<'a> {
                                     Span::new(start, self.cursor),
                                 )
                             }
-                            _ => {
-                                self.eat_char();
-                                Token::new(Op(Operator::ShiftR), Span::new(start, self.cursor))
-                            }
+                            _ => Token::new(Op(Operator::ShiftR), Span::new(start, self.cursor)),
                         }
                     }
                     Some('=') => {
@@ -571,17 +632,14 @@ impl<'a> Lexer<'a> {
                                     Span::new(start, self.cursor),
                                 )
                             }
-                            _ => {
-                                self.eat_char();
-                                Token::new(Op(Operator::ShiftL), Span::new(start, self.cursor))
-                            }
+                            _ => Token::new(Op(Operator::ShiftL), Span::new(start, self.cursor)),
                         }
                     }
                     Some('=') => {
                         self.eat_char();
-                        Token::new(Op(Operator::LesserEq), Span::new(start, self.cursor))
+                        Token::new(Op(Operator::LessEq), Span::new(start, self.cursor))
                     }
-                    _ => Token::new(Op(Operator::Lesser), Span::new(start, self.cursor)),
+                    _ => Token::new(Op(Operator::Less), Span::new(start, self.cursor)),
                 }),
                 '=' => Ok(match self.peek_char() {
                     Some('=') => {
@@ -682,31 +740,31 @@ impl<'a> Lexer<'a> {
                     Span::new(start, self.cursor),
                 )),
                 '√' => Ok(Token::new(
-                    Op(Operator::Root),
+                    Op(Operator::Sqrt),
                     Span::new(start, self.cursor),
                 )),
                 '{' => Ok(Token::new(
-                    Delim(Delimiter::OpenCurlyBracket),
+                    Delim(Delimiter::LBrace),
                     Span::new(start, self.cursor),
                 )),
                 '}' => Ok(Token::new(
-                    Delim(Delimiter::CloseCurlyBracket),
+                    Delim(Delimiter::RBrace),
                     Span::new(start, self.cursor),
                 )),
                 '(' => Ok(Token::new(
-                    Delim(Delimiter::OpenParen),
+                    Delim(Delimiter::LParen),
                     Span::new(start, self.cursor),
                 )),
                 ')' => Ok(Token::new(
-                    Delim(Delimiter::CloseParen),
+                    Delim(Delimiter::RParen),
                     Span::new(start, self.cursor),
                 )),
                 '[' => Ok(Token::new(
-                    Delim(Delimiter::OpenSquareBracket),
+                    Delim(Delimiter::LBracket),
                     Span::new(start, self.cursor),
                 )),
                 ']' => Ok(Token::new(
-                    Delim(Delimiter::CloseSquareBracket),
+                    Delim(Delimiter::RBracket),
                     Span::new(start, self.cursor),
                 )),
                 ',' => Ok(Token::new(
@@ -718,7 +776,7 @@ impl<'a> Lexer<'a> {
                     Span::new(start, self.cursor),
                 )),
                 ';' => Ok(Token::new(
-                    Delim(Delimiter::Semicolon),
+                    Delim(Delimiter::SemiColon),
                     Span::new(start, self.cursor),
                 )),
                 _ => error(LexerError::new(
@@ -891,7 +949,7 @@ impl Lexer<'_> {
     }
 
     /// Tokenizes decimal integers or floats that start with `0`.
-    fn tokenize_leading_zero_dec_integer_or_float(&mut self, start: u32) -> Result<Token> {
+    fn tokenize_leading_zero_dec_integer_or_float_or_im(&mut self, start: u32) -> Result<Token> {
         loop {
             match self.peek_char() {
                 Some('_') => {
@@ -913,20 +971,28 @@ impl Lexer<'_> {
                 Some('.') => {
                     self.eat_char();
                     break match self.lex_float_fraction(start) {
-                        Ok(string) => Ok(Token::new(
-                            Float(format!("0{string}")),
-                            Span::new(start, self.cursor),
-                        )),
+                        Ok(string) => Ok(if self.peek_string(2) == "im" {
+                            self.eat_char();
+                            self.eat_char();
+
+                            Token::new(Imag(format!("0{string}")), Span::new(start, self.cursor))
+                        } else {
+                            Token::new(Float(format!("0{string}")), Span::new(start, self.cursor))
+                        }),
                         Err(err) => Err(err),
                     };
                 }
                 Some('e') => {
                     self.eat_char();
                     break match self.lex_float_exponent(start) {
-                        Ok(string) => Ok(Token::new(
-                            Float(format!("0{string}")),
-                            Span::new(start, self.cursor),
-                        )),
+                        Ok(string) => Ok(if self.peek_string(2) == "im" {
+                            self.eat_char();
+                            self.eat_char();
+
+                            Token::new(Imag(format!("0{string}")), Span::new(start, self.cursor))
+                        } else {
+                            Token::new(Float(format!("0{string}")), Span::new(start, self.cursor))
+                        }),
                         Err(err) => Err(err),
                     };
                 }
@@ -937,17 +1003,24 @@ impl Lexer<'_> {
                     ))
                 }
                 _ => {
-                    break Ok(Token::new(
-                        Integer("0".into(), IntegerKind::Dec),
-                        Span::new(start, self.cursor),
-                    ))
+                    break Ok(if self.peek_string(2) == "im" {
+                        self.eat_char();
+                        self.eat_char();
+
+                        Token::new(Imag("0".into()), Span::new(start, self.cursor))
+                    } else {
+                        Token::new(
+                            Integer("0".into(), IntegerKind::Dec),
+                            Span::new(start, self.cursor),
+                        )
+                    });
                 }
             }
         }
     }
 
     /// Tokenizes decimal integers or floats that start with `1-9`.
-    fn tokenize_leading_non_zero_dec_integer_or_float(
+    fn tokenize_leading_non_zero_dec_integer_or_float_or_im(
         &mut self,
         mut initial_string: String,
         start: u32,
@@ -973,28 +1046,55 @@ impl Lexer<'_> {
                 Some('.') => {
                     self.eat_char();
                     break match self.lex_float_fraction(start) {
-                        Ok(string) => Ok(Token::new(
-                            Float(format!("{initial_string}{string}")),
-                            Span::new(start, self.cursor),
-                        )),
+                        Ok(string) => Ok(if self.peek_string(2) == "im" {
+                            self.eat_char();
+                            self.eat_char();
+
+                            Token::new(
+                                Imag(format!("{initial_string}{string}")),
+                                Span::new(start, self.cursor),
+                            )
+                        } else {
+                            Token::new(
+                                Float(format!("{initial_string}{string}")),
+                                Span::new(start, self.cursor),
+                            )
+                        }),
                         Err(err) => Err(err),
                     };
                 }
                 Some('e' | 'E') => {
                     self.eat_char();
                     break match self.lex_float_exponent(start) {
-                        Ok(string) => Ok(Token::new(
-                            Float(format!("{initial_string}{string}")),
-                            Span::new(start, self.cursor),
-                        )),
+                        Ok(string) => Ok(if self.peek_string(2) == "im" {
+                            self.eat_char();
+                            self.eat_char();
+
+                            Token::new(
+                                Imag(format!("{initial_string}{string}")),
+                                Span::new(start, self.cursor),
+                            )
+                        } else {
+                            Token::new(
+                                Float(format!("{initial_string}{string}")),
+                                Span::new(start, self.cursor),
+                            )
+                        }),
                         Err(err) => Err(err),
                     };
                 }
                 _ => {
-                    break Ok(Token::new(
-                        Integer(initial_string, IntegerKind::Dec),
-                        Span::new(start, self.cursor),
-                    ))
+                    break Ok(if self.peek_string(2) == "im" {
+                        self.eat_char();
+                        self.eat_char();
+
+                        Token::new(Imag(initial_string), Span::new(start, self.cursor))
+                    } else {
+                        Token::new(
+                            Integer(initial_string, IntegerKind::Dec),
+                            Span::new(start, self.cursor),
+                        )
+                    });
                 }
             }
         }
@@ -1102,7 +1202,6 @@ impl Lexer<'_> {
     }
 
     /// Lexes a short or long bytes.
-    /// TODO(appcypher): Implement this.
     fn lex_short_or_long_bytes(&mut self, char: char, start: u32, long: bool) -> Result<String> {
         // Skip long string delimiter
         if long {
