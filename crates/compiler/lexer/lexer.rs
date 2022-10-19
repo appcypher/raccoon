@@ -31,28 +31,6 @@ pub struct Lexer<'a> {
     pub token_buffer: Vec<Token>,
 }
 
-/// Represents a scope that can be introduced by an indentation-preserving block or a indentation-ignoring bracket.
-#[derive(Debug)]
-pub enum Scope {
-    /// An indentation scope.
-    Indent {
-        /// The indentation count this scope started at.
-        start_space_count: i32,
-        /// The current space count.
-        space_count: i32,
-    },
-    /// A bracket scope that ignores indentation and dedentations.
-    /// Dedents that are lesser or equal to the scope start count cause an error.
-    Bracket {
-        /// The indentation count this scope started at.
-        start_space_count: i32,
-        /// The bracket kind that initiated this scope.
-        kind: BracketKind,
-    },
-    /// This is the top-level scope and it is neither indented or in brackets
-    Initial,
-}
-
 /// Integer base kinds.
 #[derive(PartialEq, Debug)]
 pub enum IntBase {

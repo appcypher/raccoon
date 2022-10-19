@@ -6,9 +6,10 @@ fn identifier() -> impl Strategy<Value = String> {
 }
 
 fn _tokens() -> impl Strategy<Value = Vec<String>> {
-    // TODO(appcypher): Implement other token kinds. And support randomization of token.
-    // Support shuffling for indentation and brackets.
-    vec(identifier(), 0..10)
+    // TODO(appcypher):
+    // - Implement other token kinds. And support randomization of token.
+    // - Care must be taken when generating spaces between tokens. Spaces after newlines can result in unwanted indentation.
+    vec(identifier(), 0..5000)
 }
 
 pub(super) fn code() -> impl Strategy<Value = String> {

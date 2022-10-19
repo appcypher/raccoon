@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.57"
+lru = "0.8.1"
 wasm-encoder = "0.3"
+raccoon-macros = { path = "../macros" }
 
 [lib]
 path = "lib.rs"
