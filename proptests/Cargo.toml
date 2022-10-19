@@ -9,4 +9,4 @@ path = "lib.rs"
 [dev-dependencies]
 proptest = "1.0.0"
 test-strategy = "0.2.0"
-raccoon-compiler = { path = "../crates/compiler" }
+raccoon-compiler = { path = "../raccoon-compiler" }
