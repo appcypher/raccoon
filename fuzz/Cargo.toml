@@ -10,7 +10,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-raccoon-compiler = { path = "../crates/compiler" }
+raccoon-compiler = { path = "../compiler" }
 
 [dependencies.raccoon]
 path = ".."

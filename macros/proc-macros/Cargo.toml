@@ -1,5 +1,5 @@
 [package]
-name = "raccoon-macros"
+name = "raccoon-proc-macros"
 version = "0.1.0"
 edition = "2021"
 

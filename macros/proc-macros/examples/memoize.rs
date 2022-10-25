@@ -1,4 +1,4 @@
-use raccoon_macros::memoize;
+use raccoon_proc_macros::memoize;
 
 #[memoize(self: cache)]
 fn to_string(value: usize) -> String {

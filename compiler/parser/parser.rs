@@ -1,7 +1,7 @@
 use std::num::NonZeroUsize;
 
 use lru::LruCache;
-use raccoon_macros::memoize;
+use raccoon_proc_macros::memoize;
 
 use crate::{ir::Ast, lexer::Token};
 

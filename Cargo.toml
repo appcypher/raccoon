@@ -12,7 +12,7 @@ clap = { version = "3.1.0", features = ["derive"] }
 
 [workspace]
 members = [
-	'raccoon-compiler',
-	'raccoon-macros',
+	'compiler',
+	'macros/*',
 	'proptests'
 ]
