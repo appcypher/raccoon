@@ -2,14 +2,13 @@
 name = "raccoon-compiler"
 version = "0.1.0"
 edition = "2021"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.57"
 lru = "0.8.1"
-wasm-encoder = "0.3"
 raccoon-proc-macros = { path = "../macros/proc-macros" }
+wasm-encoder = "0.3"
 
 [lib]
 path = "lib.rs"
