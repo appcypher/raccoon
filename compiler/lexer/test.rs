@@ -1,12 +1,10 @@
+use utils::*;
 
+use super::{Delimiter, LexerError, LexerErrorKind::*};
 use crate::{
-    lexer::{BytesKind, IntegerKind, Keyword, Operator, StringKind, Token, TokenKind, LexerErrorKind},
+    lexer::{BytesKind, IntegerKind, Keyword, LexerErrorKind, Operator, StringKind, Token, TokenKind},
     span::Span,
 };
-
-use super::{LexerError, LexerErrorKind::*, Delimiter};
-
-use utils::*;
 
 #[test]
 fn can_tokenize_newlines() {
@@ -17,26 +15,17 @@ fn can_tokenize_newlines() {
 
     assert_eq!(
         result_macos,
-        vec![TokenResult::Ok(Token::new(
-            TokenKind::Newline,
-            Span::new(0, 1)
-        ))]
+        vec![TokenResult::Ok(Token::new(TokenKind::Newline, Span::new(0, 1)))]
     );
 
     assert_eq!(
         result_windows,
-        vec![TokenResult::Ok(Token::new(
-            TokenKind::Newline,
-            Span::new(0, 2)
-        ))]
+        vec![TokenResult::Ok(Token::new(TokenKind::Newline, Span::new(0, 2)))]
     );
 
     assert_eq!(
         result_unix,
-        vec![TokenResult::Ok(Token::new(
-            TokenKind::Newline,
-            Span::new(0, 1)
-        ))]
+        vec![TokenResult::Ok(Token::new(TokenKind::Newline, Span::new(0, 1)))]
     );
 
     assert_eq!(
@@ -74,10 +63,7 @@ fn can_skip_useless_spaces() {
 
     assert_eq!(
         result_newline,
-        vec![TokenResult::Ok(Token::new(
-            TokenKind::Newline,
-            Span::new(3, 4)
-        ))]
+        vec![TokenResult::Ok(Token::new(TokenKind::Newline, Span::new(3, 4)))]
     );
 }
 
@@ -94,20 +80,14 @@ fn can_skip_line_continuation() {
 
     assert_eq!(
         result_complex,
-        vec![TokenResult::Ok(Token::new(
-            TokenKind::Newline,
-            Span::new(0, 2)
-        ))]
+        vec![TokenResult::Ok(Token::new(TokenKind::Newline, Span::new(0, 2)))]
     );
 
     assert_eq!(
         result_missing_consecutive_newline,
         vec![
             TokenResult::Ok(Token::new(TokenKind::Newline, Span::new(0, 2))),
-            TokenResult::Err(LexerError::new(
-                InvalidLineContinuationEscapeSequence,
-                Span::new(2, 3)
-            ))
+            TokenResult::Err(LexerError::new(InvalidLineContinuationEscapeSequence, Span::new(2, 3)))
         ]
     );
 }
@@ -115,12 +95,10 @@ fn can_skip_line_continuation() {
 #[test]
 fn can_tokenize_short_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"'hello there!'"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"'hello\tthere\r\nnew\\world!'"#);
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"'hello\tthere\r\nnew\\world!'"#);
 
     let result_double_quote_string: Vec<_> = get_tokens(r#""hello there!""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#""hello\tthere\r\nnew\\world!""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#""hello\tthere\r\nnew\\world!""#);
 
     // Failures
 
@@ -164,48 +142,33 @@ fn can_tokenize_short_strings() {
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 13)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 13)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 13)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 13)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 13)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 13)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 13)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 13)))]
     );
 }
 
 #[test]
 fn can_tokenize_long_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"'''hello there!'''"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"'''hello\tthere\r\nnew\\world!'''"#);
-    let result_single_quote_string_with_newlines: Vec<_> =
-        get_tokens("'''hello there\n\r\nnew world!'''");
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"'''hello\tthere\r\nnew\\world!'''"#);
+    let result_single_quote_string_with_newlines: Vec<_> = get_tokens("'''hello there\n\r\nnew world!'''");
 
     let result_double_quote_string: Vec<_> = get_tokens(r#""""hello there!""""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#""""hello\tthere\r\nnew\\world!""""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#""""hello\tthere\r\nnew\\world!""""#);
 
     // Failures
 
@@ -256,46 +219,32 @@ fn can_tokenize_long_strings() {
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 17)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 17)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 16)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 16)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 17)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 17)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 16)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 16)))]
     );
 }
 
 #[test]
 fn can_tokenize_short_raw_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"r'hello there!'"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"r'hello\tthere\r\nnew\\world!'"#);
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"r'hello\tthere\r\nnew\\world!'"#);
 
     let result_double_quote_string: Vec<_> = get_tokens(r#"r"hello there!""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"r"hello\tthere\r\nnew\\world!""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"r"hello\tthere\r\nnew\\world!""#);
 
     // Failures
 
@@ -316,10 +265,7 @@ fn can_tokenize_short_raw_strings() {
     assert_eq!(
         result_single_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::RawStr
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::RawStr),
             Span::new(0, 30)
         ))]
     );
@@ -335,58 +281,40 @@ fn can_tokenize_short_raw_strings() {
     assert_eq!(
         result_double_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::RawStr
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::RawStr),
             Span::new(0, 30)
         ))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 }
 
 #[test]
 fn can_tokenize_long_raw_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"r'''hello there!'''"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"r'''hello\tthere\r\nnew\\world!'''"#);
-    let result_single_quote_string_with_newlines: Vec<_> =
-        get_tokens("r'''hello there\n\r\nnew world!'''");
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"r'''hello\tthere\r\nnew\\world!'''"#);
+    let result_single_quote_string_with_newlines: Vec<_> = get_tokens("r'''hello there\n\r\nnew world!'''");
 
     let result_double_quote_string: Vec<_> = get_tokens(r#"r"""hello there!""""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"r"""hello\tthere\r\nnew\\world!""""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"r"""hello\tthere\r\nnew\\world!""""#);
 
     // Failures
 
@@ -406,10 +334,7 @@ fn can_tokenize_long_raw_strings() {
     assert_eq!(
         result_single_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::RawStr
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::RawStr),
             Span::new(0, 34)
         ))]
     );
@@ -417,10 +342,7 @@ fn can_tokenize_long_raw_strings() {
     assert_eq!(
         result_single_quote_string_with_newlines,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                "hello there\n\r\nnew world!".to_string(),
-                StringKind::RawStr
-            ),
+            TokenKind::Str("hello there\n\r\nnew world!".to_string(), StringKind::RawStr),
             Span::new(0, 31)
         ))]
     );
@@ -436,56 +358,39 @@ fn can_tokenize_long_raw_strings() {
     assert_eq!(
         result_double_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::RawStr
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::RawStr),
             Span::new(0, 34)
         ))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 18)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 18)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 17)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 17)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 18)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 18)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 17)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 17)))]
     );
 }
 
 #[test]
 fn can_tokenize_short_format_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"f'hello there!'"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"f'hello\tthere\r\nnew\\world!'"#);
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"f'hello\tthere\r\nnew\\world!'"#);
 
     let result_double_quote_string: Vec<_> = get_tokens(r#"f"hello there!""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"f"hello\tthere\r\nnew\\world!""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"f"hello\tthere\r\nnew\\world!""#);
 
     // Failures
 
@@ -506,10 +411,7 @@ fn can_tokenize_short_format_strings() {
     assert_eq!(
         result_single_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::Format
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::Format),
             Span::new(0, 30)
         ))]
     );
@@ -525,58 +427,40 @@ fn can_tokenize_short_format_strings() {
     assert_eq!(
         result_double_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::Format
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::Format),
             Span::new(0, 30)
         ))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 }
 
 #[test]
 fn can_tokenize_long_format_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"f'''hello there!'''"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"f'''hello\tthere\r\nnew\\world!'''"#);
-    let result_single_quote_string_with_newlines: Vec<_> =
-        get_tokens("f'''hello there\n\r\nnew world!'''");
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"f'''hello\tthere\r\nnew\\world!'''"#);
+    let result_single_quote_string_with_newlines: Vec<_> = get_tokens("f'''hello there\n\r\nnew world!'''");
 
     let result_double_quote_string: Vec<_> = get_tokens(r#"f"""hello there!""""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"f"""hello\tthere\r\nnew\\world!""""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"f"""hello\tthere\r\nnew\\world!""""#);
 
     // Failures
 
@@ -596,10 +480,7 @@ fn can_tokenize_long_format_strings() {
     assert_eq!(
         result_single_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::Format
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::Format),
             Span::new(0, 34)
         ))]
     );
@@ -607,10 +488,7 @@ fn can_tokenize_long_format_strings() {
     assert_eq!(
         result_single_quote_string_with_newlines,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                "hello there\n\r\nnew world!".to_string(),
-                StringKind::Format
-            ),
+            TokenKind::Str("hello there\n\r\nnew world!".to_string(), StringKind::Format),
             Span::new(0, 31)
         ))]
     );
@@ -626,56 +504,39 @@ fn can_tokenize_long_format_strings() {
     assert_eq!(
         result_double_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::Format
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::Format),
             Span::new(0, 34)
         ))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 18)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 18)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 17)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 17)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 18)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 18)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 17)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 17)))]
     );
 }
 
 #[test]
 fn can_tokenize_short_raw_format_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"rf'hello there!'"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"rf'hello\tthere\r\nnew\\world!'"#);
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"rf'hello\tthere\r\nnew\\world!'"#);
 
     let result_double_quote_string: Vec<_> = get_tokens(r#"rf"hello there!""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"rf"hello\tthere\r\nnew\\world!""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"rf"hello\tthere\r\nnew\\world!""#);
 
     // Failures
 
@@ -696,10 +557,7 @@ fn can_tokenize_short_raw_format_strings() {
     assert_eq!(
         result_single_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::RawFormat
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::RawFormat),
             Span::new(0, 31)
         ))]
     );
@@ -715,58 +573,40 @@ fn can_tokenize_short_raw_format_strings() {
     assert_eq!(
         result_double_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::RawFormat
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::RawFormat),
             Span::new(0, 31)
         ))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 15)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 15)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 15)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 15)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 15)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 15)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 15)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 15)))]
     );
 }
 
 #[test]
 fn can_tokenize_long_raw_format_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"rf'''hello there!'''"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"rf'''hello\tthere\r\nnew\\world!'''"#);
-    let result_single_quote_string_with_newlines: Vec<_> =
-        get_tokens("rf'''hello there\n\r\nnew world!'''");
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"rf'''hello\tthere\r\nnew\\world!'''"#);
+    let result_single_quote_string_with_newlines: Vec<_> = get_tokens("rf'''hello there\n\r\nnew world!'''");
 
     let result_double_quote_string: Vec<_> = get_tokens(r#"rf"""hello there!""""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"rf"""hello\tthere\r\nnew\\world!""""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"rf"""hello\tthere\r\nnew\\world!""""#);
 
     // Failures
 
@@ -786,10 +626,7 @@ fn can_tokenize_long_raw_format_strings() {
     assert_eq!(
         result_single_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::RawFormat
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::RawFormat),
             Span::new(0, 35)
         ))]
     );
@@ -797,10 +634,7 @@ fn can_tokenize_long_raw_format_strings() {
     assert_eq!(
         result_single_quote_string_with_newlines,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                "hello there\n\r\nnew world!".to_string(),
-                StringKind::RawFormat
-            ),
+            TokenKind::Str("hello there\n\r\nnew world!".to_string(), StringKind::RawFormat),
             Span::new(0, 32)
         ))]
     );
@@ -816,56 +650,39 @@ fn can_tokenize_long_raw_format_strings() {
     assert_eq!(
         result_double_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::RawFormat
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::RawFormat),
             Span::new(0, 35)
         ))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 19)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 19)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 18)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 18)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 19)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 19)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 18)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 18)))]
     );
 }
 
 #[test]
 fn can_tokenize_short_raw_byte_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"rb'hello there!'"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"rb'hello\tthere\r\nnew\\world!'"#);
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"rb'hello\tthere\r\nnew\\world!'"#);
 
     let result_double_quote_string: Vec<_> = get_tokens(r#"rb"hello there!""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"rb"hello\tthere\r\nnew\\world!""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"rb"hello\tthere\r\nnew\\world!""#);
 
     // Failures
 
@@ -886,10 +703,7 @@ fn can_tokenize_short_raw_byte_strings() {
     assert_eq!(
         result_single_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::ByteStr(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                BytesKind::RawBytes
-            ),
+            TokenKind::ByteStr(r"hello\tthere\r\nnew\\world!".to_string(), BytesKind::RawBytes),
             Span::new(0, 31)
         ))]
     );
@@ -905,58 +719,40 @@ fn can_tokenize_short_raw_byte_strings() {
     assert_eq!(
         result_double_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::ByteStr(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                BytesKind::RawBytes
-            ),
+            TokenKind::ByteStr(r"hello\tthere\r\nnew\\world!".to_string(), BytesKind::RawBytes),
             Span::new(0, 31)
         ))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 15)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 15)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 15)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 15)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 15)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 15)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 15)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 15)))]
     );
 }
 
 #[test]
 fn can_tokenize_long_raw_byte_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"rf'''hello there!'''"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"rf'''hello\tthere\r\nnew\\world!'''"#);
-    let result_single_quote_string_with_newlines: Vec<_> =
-        get_tokens("rf'''hello there\n\r\nnew world!'''");
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"rf'''hello\tthere\r\nnew\\world!'''"#);
+    let result_single_quote_string_with_newlines: Vec<_> = get_tokens("rf'''hello there\n\r\nnew world!'''");
 
     let result_double_quote_string: Vec<_> = get_tokens(r#"rf"""hello there!""""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"rf"""hello\tthere\r\nnew\\world!""""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"rf"""hello\tthere\r\nnew\\world!""""#);
 
     // Failures
 
@@ -976,10 +772,7 @@ fn can_tokenize_long_raw_byte_strings() {
     assert_eq!(
         result_single_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::RawFormat
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::RawFormat),
             Span::new(0, 35)
         ))]
     );
@@ -987,10 +780,7 @@ fn can_tokenize_long_raw_byte_strings() {
     assert_eq!(
         result_single_quote_string_with_newlines,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                "hello there\n\r\nnew world!".to_string(),
-                StringKind::RawFormat
-            ),
+            TokenKind::Str("hello there\n\r\nnew world!".to_string(), StringKind::RawFormat),
             Span::new(0, 32)
         ))]
     );
@@ -1006,56 +796,39 @@ fn can_tokenize_long_raw_byte_strings() {
     assert_eq!(
         result_double_quote_string_with_escape_seq,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Str(
-                r"hello\tthere\r\nnew\\world!".to_string(),
-                StringKind::RawFormat
-            ),
+            TokenKind::Str(r"hello\tthere\r\nnew\\world!".to_string(), StringKind::RawFormat),
             Span::new(0, 35)
         ))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 19)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 19)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 18)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 18)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 19)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 19)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 18)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 18)))]
     );
 }
 
 #[test]
 fn can_tokenize_short_byte_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"b'hello there!'"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"b'hello\tthere\r\nnew\\world!'"#);
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"b'hello\tthere\r\nnew\\world!'"#);
 
     let result_double_quote_string: Vec<_> = get_tokens(r#"b"hello there!""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"b"hello\tthere\r\nnew\\world!""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"b"hello\tthere\r\nnew\\world!""#);
 
     // Failures
 
@@ -1099,48 +872,33 @@ fn can_tokenize_short_byte_strings() {
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 14)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 14)))]
     );
 }
 
 #[test]
 fn can_tokenize_long_byte_strings() {
     let result_single_quote_string: Vec<_> = get_tokens(r#"b'''hello there!'''"#);
-    let result_single_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"b'''hello\tthere\r\nnew\\world!'''"#);
-    let result_single_quote_string_with_newlines: Vec<_> =
-        get_tokens("b'''hello there\n\r\nnew world!'''");
+    let result_single_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"b'''hello\tthere\r\nnew\\world!'''"#);
+    let result_single_quote_string_with_newlines: Vec<_> = get_tokens("b'''hello there\n\r\nnew world!'''");
 
     let result_double_quote_string: Vec<_> = get_tokens(r#"b"""hello there!""""#);
-    let result_double_quote_string_with_escape_seq: Vec<_> =
-        get_tokens(r#"b"""hello\tthere\r\nnew\\world!""""#);
+    let result_double_quote_string_with_escape_seq: Vec<_> = get_tokens(r#"b"""hello\tthere\r\nnew\\world!""""#);
 
     // Failures
 
@@ -1191,34 +949,22 @@ fn can_tokenize_long_byte_strings() {
 
     assert_eq!(
         result_unterminated_single_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 18)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 18)))]
     );
 
     assert_eq!(
         result_unterminated_single_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 17)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 17)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 18)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 18)))]
     );
 
     assert_eq!(
         result_unterminated_double_quote_string_2,
-        vec![TokenResult::Err(LexerError::new(
-            UnterminatedString,
-            Span::new(0, 17)
-        ))]
+        vec![TokenResult::Err(LexerError::new(UnterminatedString, Span::new(0, 17)))]
     );
 }
 
@@ -1253,8 +999,7 @@ fn can_tokenize_floats() {
     let result_leading_non_zero_incomplete_fraction = get_tokens("1_2.e7_8");
     let result_leading_non_zero_incomplete_fraction_with_underscore = get_tokens("1_2._e7_8");
     let result_leading_non_zero_incomplete_exponent_without_fraction = get_tokens("1_23e");
-    let result_leading_non_zero_incomplete_exponent_with_sign_without_fraction =
-        get_tokens("1_23e+");
+    let result_leading_non_zero_incomplete_exponent_with_sign_without_fraction = get_tokens("1_23e+");
 
     assert_eq!(
         result_leading_zero,
@@ -1635,126 +1380,44 @@ fn can_tokenize_identifiers() {
         get_tokens("f fa f1 f_ fa_1 b b1 b_ b_1 r r1 r_ r_1 rf rf1 rf_ rf_1 rb rb1 rb_ rb_1");
     let result_leading_underscore = get_tokens("_ _1 _a _a1 _a_ _a_1");
     let result_with_numbers = get_tokens("a1234567890 a_1234567890 a12_345__67890");
-    let result_valid_characters =
-        get_tokens("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
+    let result_valid_characters = get_tokens("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
 
     assert_eq!(
         result_no_string_prefix_conflict,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("f".to_string()),
-                Span::new(0, 1)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("fa".to_string()),
-                Span::new(2, 4)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("f1".to_string()),
-                Span::new(5, 7)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("f_".to_string()),
-                Span::new(8, 10)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("fa_1".to_string()),
-                Span::new(11, 15)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("b".to_string()),
-                Span::new(16, 17)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("b1".to_string()),
-                Span::new(18, 20)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("b_".to_string()),
-                Span::new(21, 23)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("b_1".to_string()),
-                Span::new(24, 27)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("r".to_string()),
-                Span::new(28, 29)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("r1".to_string()),
-                Span::new(30, 32)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("r_".to_string()),
-                Span::new(33, 35)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("r_1".to_string()),
-                Span::new(36, 39)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("rf".to_string()),
-                Span::new(40, 42)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("rf1".to_string()),
-                Span::new(43, 46)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("rf_".to_string()),
-                Span::new(47, 50)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("rf_1".to_string()),
-                Span::new(51, 55)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("rb".to_string()),
-                Span::new(56, 58)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("rb1".to_string()),
-                Span::new(59, 62)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("rb_".to_string()),
-                Span::new(63, 66)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("rb_1".to_string()),
-                Span::new(67, 71)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("f".to_string()), Span::new(0, 1))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("fa".to_string()), Span::new(2, 4))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("f1".to_string()), Span::new(5, 7))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("f_".to_string()), Span::new(8, 10))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("fa_1".to_string()), Span::new(11, 15))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("b".to_string()), Span::new(16, 17))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("b1".to_string()), Span::new(18, 20))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("b_".to_string()), Span::new(21, 23))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("b_1".to_string()), Span::new(24, 27))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("r".to_string()), Span::new(28, 29))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("r1".to_string()), Span::new(30, 32))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("r_".to_string()), Span::new(33, 35))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("r_1".to_string()), Span::new(36, 39))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("rf".to_string()), Span::new(40, 42))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("rf1".to_string()), Span::new(43, 46))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("rf_".to_string()), Span::new(47, 50))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("rf_1".to_string()), Span::new(51, 55))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("rb".to_string()), Span::new(56, 58))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("rb1".to_string()), Span::new(59, 62))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("rb_".to_string()), Span::new(63, 66))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("rb_1".to_string()), Span::new(67, 71))),
         ]
     );
 
     assert_eq!(
         result_leading_underscore,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("_".to_string()),
-                Span::new(0, 1)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("_1".to_string()),
-                Span::new(2, 4)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("_a".to_string()),
-                Span::new(5, 7)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("_a1".to_string()),
-                Span::new(8, 11)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("_a_".to_string()),
-                Span::new(12, 15)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("_a_1".to_string()),
-                Span::new(16, 20)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("_".to_string()), Span::new(0, 1))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("_1".to_string()), Span::new(2, 4))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("_a".to_string()), Span::new(5, 7))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("_a1".to_string()), Span::new(8, 11))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("_a_".to_string()), Span::new(12, 15))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("_a_1".to_string()), Span::new(16, 20))),
         ]
     );
 
@@ -1779,9 +1442,7 @@ fn can_tokenize_identifiers() {
     assert_eq!(
         result_valid_characters,
         vec![TokenResult::Ok(Token::new(
-            TokenKind::Identifier(
-                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_".to_string()
-            ),
+            TokenKind::Identifier("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_".to_string()),
             Span::new(0, 63)
         )),]
     );
@@ -1794,191 +1455,53 @@ fn can_tokenize_keywords() {
     assert_eq!(
         result_valid_keywords,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::And),
-                Span::new(0, 3)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::And), Span::new(0, 3))),
             TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::As), Span::new(4, 6))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Assert),
-                Span::new(7, 13)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Async),
-                Span::new(14, 19)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Await),
-                Span::new(20, 25)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Break),
-                Span::new(26, 31)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Class),
-                Span::new(32, 37)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Const),
-                Span::new(38, 43)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Continue),
-                Span::new(44, 52)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Def),
-                Span::new(53, 56)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Del),
-                Span::new(57, 60)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Elif),
-                Span::new(61, 65)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Else),
-                Span::new(66, 70)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Enum),
-                Span::new(71, 75)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Except),
-                Span::new(76, 82)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::False),
-                Span::new(83, 88)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Finally),
-                Span::new(89, 96)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::For),
-                Span::new(97, 100)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::From),
-                Span::new(101, 105)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Global),
-                Span::new(106, 112)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::If),
-                Span::new(113, 115)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Import),
-                Span::new(116, 122)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::In),
-                Span::new(123, 125)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Interface),
-                Span::new(126, 135)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Is),
-                Span::new(136, 138)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Lambda),
-                Span::new(139, 145)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Let),
-                Span::new(146, 149)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Macro),
-                Span::new(150, 155)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Match),
-                Span::new(156, 161)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Mut),
-                Span::new(162, 165)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Nonlocal),
-                Span::new(166, 174)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Not),
-                Span::new(175, 178)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Or),
-                Span::new(179, 181)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Pass),
-                Span::new(182, 186)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Ptr),
-                Span::new(187, 190)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Raise),
-                Span::new(191, 196)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Ref),
-                Span::new(197, 200)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Return),
-                Span::new(201, 207)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::True),
-                Span::new(208, 212)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Try),
-                Span::new(213, 216)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Typealias),
-                Span::new(217, 226)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Val),
-                Span::new(227, 230)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Var),
-                Span::new(231, 234)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Where),
-                Span::new(235, 240)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::While),
-                Span::new(241, 246)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::With),
-                Span::new(247, 251)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Keyword(Keyword::Yield),
-                Span::new(252, 257)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Assert), Span::new(7, 13))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Async), Span::new(14, 19))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Await), Span::new(20, 25))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Break), Span::new(26, 31))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Class), Span::new(32, 37))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Const), Span::new(38, 43))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Continue), Span::new(44, 52))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Def), Span::new(53, 56))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Del), Span::new(57, 60))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Elif), Span::new(61, 65))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Else), Span::new(66, 70))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Enum), Span::new(71, 75))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Except), Span::new(76, 82))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::False), Span::new(83, 88))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Finally), Span::new(89, 96))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::For), Span::new(97, 100))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::From), Span::new(101, 105))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Global), Span::new(106, 112))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::If), Span::new(113, 115))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Import), Span::new(116, 122))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::In), Span::new(123, 125))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Interface), Span::new(126, 135))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Is), Span::new(136, 138))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Lambda), Span::new(139, 145))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Let), Span::new(146, 149))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Macro), Span::new(150, 155))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Match), Span::new(156, 161))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Mut), Span::new(162, 165))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Nonlocal), Span::new(166, 174))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Not), Span::new(175, 178))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Or), Span::new(179, 181))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Pass), Span::new(182, 186))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Ptr), Span::new(187, 190))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Raise), Span::new(191, 196))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Ref), Span::new(197, 200))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Return), Span::new(201, 207))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::True), Span::new(208, 212))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Try), Span::new(213, 216))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Typealias), Span::new(217, 226))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Val), Span::new(227, 230))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Var), Span::new(231, 234))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Where), Span::new(235, 240))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::While), Span::new(241, 246))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::With), Span::new(247, 251))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Yield), Span::new(252, 257))),
         ]
     );
 }
@@ -1987,13 +1510,11 @@ fn can_tokenize_keywords() {
 fn can_tokenize_indentations() {
     let result_two_space = get_tokens("lorem\n  ipsum");
     let result_three_space_nested = get_tokens("lorem\n   0b101 dolor\n      sit amet");
-    let result_one_space_nested_with_closing_newline =
-        get_tokens("lorem\n 0b101 dolor\n  sit amet\n");
+    let result_one_space_nested_with_closing_newline = get_tokens("lorem\n 0b101 dolor\n  sit amet\n");
 
     let result_two_tab = get_tokens("lorem\n\t\tipsum");
     let result_three_tab_nested = get_tokens("lorem\n\t\t\t0b101 dolor\n\t\t\t\t\t\tsit amet");
-    let result_one_tab_nested_with_closing_newline =
-        get_tokens("lorem\n\t0b101 dolor\n\t\tsit amet\n");
+    let result_one_tab_nested_with_closing_newline = get_tokens("lorem\n\t0b101 dolor\n\t\tsit amet\n");
 
     let result_indentation_at_start = get_tokens("\n    ipsum");
 
@@ -2007,25 +1528,16 @@ fn can_tokenize_indentations() {
     assert_eq!(
         result_two_space,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("lorem".to_string()),
-                Span::new(0, 5)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("lorem".to_string()), Span::new(0, 5))),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(5, 8))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("ipsum".to_string()),
-                Span::new(8, 13)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("ipsum".to_string()), Span::new(8, 13))),
         ]
     );
 
     assert_eq!(
         result_three_space_nested,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("lorem".to_string()),
-                Span::new(0, 5)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("lorem".to_string()), Span::new(0, 5))),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(5, 9))),
             TokenResult::Ok(Token::new(
                 TokenKind::Integer("101".to_string(), IntegerKind::Bin),
@@ -2036,24 +1548,15 @@ fn can_tokenize_indentations() {
                 Span::new(15, 20)
             )),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(20, 27))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("sit".to_string()),
-                Span::new(27, 30)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("amet".to_string()),
-                Span::new(31, 35)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("sit".to_string()), Span::new(27, 30))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("amet".to_string()), Span::new(31, 35))),
         ]
     );
 
     assert_eq!(
         result_one_space_nested_with_closing_newline,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("lorem".to_string()),
-                Span::new(0, 5)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("lorem".to_string()), Span::new(0, 5))),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(5, 7))),
             TokenResult::Ok(Token::new(
                 TokenKind::Integer("101".to_string(), IntegerKind::Bin),
@@ -2064,14 +1567,8 @@ fn can_tokenize_indentations() {
                 Span::new(13, 18)
             )),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(18, 21))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("sit".to_string()),
-                Span::new(21, 24)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("amet".to_string()),
-                Span::new(25, 29)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("sit".to_string()), Span::new(21, 24))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("amet".to_string()), Span::new(25, 29))),
             TokenResult::Ok(Token::new(TokenKind::Dedent, Span::new(29, 30))),
             TokenResult::Ok(Token::new(TokenKind::Dedent, Span::new(29, 30))),
         ]
@@ -2080,25 +1577,16 @@ fn can_tokenize_indentations() {
     assert_eq!(
         result_two_tab,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("lorem".to_string()),
-                Span::new(0, 5)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("lorem".to_string()), Span::new(0, 5))),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(5, 8))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("ipsum".to_string()),
-                Span::new(8, 13)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("ipsum".to_string()), Span::new(8, 13))),
         ]
     );
 
     assert_eq!(
         result_three_tab_nested,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("lorem".to_string()),
-                Span::new(0, 5)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("lorem".to_string()), Span::new(0, 5))),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(5, 9))),
             TokenResult::Ok(Token::new(
                 TokenKind::Integer("101".to_string(), IntegerKind::Bin),
@@ -2109,24 +1597,15 @@ fn can_tokenize_indentations() {
                 Span::new(15, 20)
             )),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(20, 27))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("sit".to_string()),
-                Span::new(27, 30)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("amet".to_string()),
-                Span::new(31, 35)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("sit".to_string()), Span::new(27, 30))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("amet".to_string()), Span::new(31, 35))),
         ]
     );
 
     assert_eq!(
         result_one_tab_nested_with_closing_newline,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("lorem".to_string()),
-                Span::new(0, 5)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("lorem".to_string()), Span::new(0, 5))),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(5, 7))),
             TokenResult::Ok(Token::new(
                 TokenKind::Integer("101".to_string(), IntegerKind::Bin),
@@ -2137,14 +1616,8 @@ fn can_tokenize_indentations() {
                 Span::new(13, 18)
             )),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(18, 21))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("sit".to_string()),
-                Span::new(21, 24)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("amet".to_string()),
-                Span::new(25, 29)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("sit".to_string()), Span::new(21, 24))),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("amet".to_string()), Span::new(25, 29))),
             TokenResult::Ok(Token::new(TokenKind::Dedent, Span::new(29, 30))),
             TokenResult::Ok(Token::new(TokenKind::Dedent, Span::new(29, 30))),
         ]
@@ -2154,20 +1627,14 @@ fn can_tokenize_indentations() {
         result_indentation_at_start,
         vec![
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(0, 5))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("ipsum".to_string()),
-                Span::new(5, 10)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("ipsum".to_string()), Span::new(5, 10))),
         ]
     );
 
     assert_eq!(
         result_mixed_spaces,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("lorem".to_string()),
-                Span::new(0, 5)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("lorem".to_string()), Span::new(0, 5))),
             TokenResult::Err(LexerError::new(MixedSpaces, Span::new(5, 9))),
         ]
     );
@@ -2175,15 +1642,9 @@ fn can_tokenize_indentations() {
     assert_eq!(
         result_mixed_indentation_spaces,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("lorem".to_string()),
-                Span::new(0, 5)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("lorem".to_string()), Span::new(0, 5))),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(5, 8))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("ipsum".to_string()),
-                Span::new(8, 13)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("ipsum".to_string()), Span::new(8, 13))),
             TokenResult::Err(LexerError::new(InconsistentIndent, Span::new(13, 18))),
         ]
     );
@@ -2191,15 +1652,9 @@ fn can_tokenize_indentations() {
     assert_eq!(
         result_mixed_indentation_sizes,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("lorem".to_string()),
-                Span::new(0, 5)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("lorem".to_string()), Span::new(0, 5))),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(5, 8))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("ipsum".to_string()),
-                Span::new(8, 13)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("ipsum".to_string()), Span::new(8, 13))),
             TokenResult::Err(LexerError::new(MixedIndentSizes, Span::new(13, 20))),
         ]
     );
@@ -2207,15 +1662,9 @@ fn can_tokenize_indentations() {
     assert_eq!(
         result_inconsistent_dedent,
         vec![
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("lorem".to_string()),
-                Span::new(0, 5)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("lorem".to_string()), Span::new(0, 5))),
             TokenResult::Ok(Token::new(TokenKind::Indent, Span::new(5, 8))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Identifier("ipsum".to_string()),
-                Span::new(8, 13)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Identifier("ipsum".to_string()), Span::new(8, 13))),
             TokenResult::Err(LexerError::new(InconsistentDedent, Span::new(13, 15))),
         ]
     );
@@ -2322,58 +1771,22 @@ fn can_tokenize_operators() {
             TokenResult::Ok(Token::new(TokenKind::Op(Operator::Minus), Span::new(2, 3))),
             TokenResult::Ok(Token::new(TokenKind::Op(Operator::Mul), Span::new(4, 5))),
             TokenResult::Ok(Token::new(TokenKind::Op(Operator::Div), Span::new(6, 7))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::IntDiv),
-                Span::new(8, 10)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::IntDiv), Span::new(8, 10))),
             TokenResult::Ok(Token::new(TokenKind::Op(Operator::Mod), Span::new(11, 12))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::ShiftL),
-                Span::new(13, 15)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::ShiftR),
-                Span::new(16, 18)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::BitAnd),
-                Span::new(19, 20)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::BitOr),
-                Span::new(21, 22)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::BitXor),
-                Span::new(23, 24)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::BitNot),
-                Span::new(25, 26)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::ShiftL), Span::new(13, 15))),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::ShiftR), Span::new(16, 18))),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::BitAnd), Span::new(19, 20))),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::BitOr), Span::new(21, 22))),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::BitXor), Span::new(23, 24))),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::BitNot), Span::new(25, 26))),
             TokenResult::Ok(Token::new(TokenKind::Op(Operator::Less), Span::new(27, 28))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::Greater),
-                Span::new(29, 30)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::LessEq),
-                Span::new(31, 33)
-            )),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::GreaterEq),
-                Span::new(34, 36)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::Greater), Span::new(29, 30))),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::LessEq), Span::new(31, 33))),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::GreaterEq), Span::new(34, 36))),
             TokenResult::Ok(Token::new(TokenKind::Op(Operator::Eq), Span::new(37, 39))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::NotEq),
-                Span::new(40, 42)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::NotEq), Span::new(40, 42))),
             TokenResult::Ok(Token::new(TokenKind::Op(Operator::Pow), Span::new(43, 45))),
-            TokenResult::Ok(Token::new(
-                TokenKind::Op(Operator::Square),
-                Span::new(46, 47)
-            )),
+            TokenResult::Ok(Token::new(TokenKind::Op(Operator::Square), Span::new(46, 47))),
             TokenResult::Ok(Token::new(TokenKind::Op(Operator::Sqrt), Span::new(48, 49))),
         ]
     );

@@ -1,5 +1,4 @@
-use proptest::strategy::Strategy;
-use proptest::collection::vec;
+use proptest::{collection::vec, strategy::Strategy};
 
 fn identifier() -> impl Strategy<Value = String> {
     r"[A-Za-z_][A-Za-z0-9_]*"

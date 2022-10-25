@@ -27,7 +27,7 @@ pub enum LexerErrorKind {
     InvalidLeadingZeroInDecInteger,
     InvalidCharacterInByteString,
     InvalidCharacter,
-    InvalidOperator
+    InvalidOperator,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
