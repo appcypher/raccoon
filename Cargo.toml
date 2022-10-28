@@ -16,3 +16,6 @@ members = [
 	'macros/*',
 	'proptests'
 ]
+
+[profile.dev]
+split-debuginfo = "unpacked"

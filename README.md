@@ -6,11 +6,9 @@
 
 <h1 align="center">Raccoon</h1>
 
-`raccoon` is a language with Python 3.x syntax that is amenable to static analysis. The repository both defines the spec of the language and contains a reference implementation of the compiler.
+`raccoon` is a statically-typed language that borrows syntax from Python and adopts some ideologies of Rust resulting in a language that is both easy to learn and powerful to use.
 
-**Raccoon will not maintain full syntactic and semantic compatibility with Python**. Several dynamic elements known of Python are not available in Raccoon. While Raccoon prioritizes a design that benefits static analysis, it still allows Python's level of flexibility where statically determinable.
-
-Raccoon compiler implementation generates WebAssembly code.
+`raccoon` encourages the rapid prototyping spirit of Python with little to no compromise on the performance and safety that Rust provides.
 
 Below is an example of what Raccoon currently looks like:
 
