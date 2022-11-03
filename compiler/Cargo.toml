@@ -11,4 +11,5 @@ raccoon-proc-macros = { path = "../macros/proc-macros" }
 wasm-encoder = "0.3"
 
 [lib]
-path = "lib.rs"
+name = "compiler"
+path = "src/lib.rs"

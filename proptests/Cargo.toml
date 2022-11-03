@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-path = "lib.rs"
+name = "proptests"
+path = "src/lib.rs"
 
 [dev-dependencies]
 proptest = "1.0.0"

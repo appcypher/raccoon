@@ -6,7 +6,7 @@
 
 <h1 align="center">Raccoon</h1>
 
-`raccoon` is a statically-typed language that borrows syntax from Python and adopts some ideologies of Rust resulting in a language that is both easy to learn and powerful to use.
+`raccoon` is a statically-typed language that borrows syntax from Python and adopts some Rust philosophies resulting in a language that is both easy to learn and powerful to use.
 
 `raccoon` encourages the rapid prototyping spirit of Python with little to no compromise on the performance and safety that Rust provides.
 
