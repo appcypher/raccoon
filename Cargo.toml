@@ -12,9 +12,10 @@ clap = { version = "3.1.0", features = ["derive"] }
 
 [workspace]
 members = [
-	'compiler',
-	'macros/*',
-	'proptests'
+	"bench",
+	"compiler",
+	"macros/*",
+	"proptests"
 ]
 
 [profile.dev]

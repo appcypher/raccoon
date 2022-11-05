@@ -1,0 +1,15 @@
+[package]
+name = "raccoon-bench"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+anyhow = "1.0"
+proptest = "1.0"
+criterion = { version = "0.4" }
+raccoon-compiler = { path = "../compiler" }
+
+[[bench]]
+name = "lexer"
+path = "src/compiler/lexer.rs"
+harness = false

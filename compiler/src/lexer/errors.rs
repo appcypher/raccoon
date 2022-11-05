@@ -13,7 +13,6 @@ pub enum LexerErrorKind {
     UnknownIndent,
     MixedIndentSizes,
     InconsistentDedent,
-    InvalidInBracketDedent,
     UnterminatedString,
     InvalidLineContinuationEscapeSequence,
     MissingDigitPartInFloatFraction,

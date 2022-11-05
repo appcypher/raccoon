@@ -11,17 +11,17 @@ def add(a, b):
 
 `add` has the following interface contract:
 
-    [ T: impl __plus__.2 ](a: any T.__plus__.0, b: any T.__plus__.1)
+    [ T: impl plus.2 ](a: any T.plus.0, b: any T.plus.1)
 
-- `[ T: impl __plus__.2 ]` reads as:
+- `[ T: impl plus.2 ]` reads as:
 
-  T is a type that implements `__plus__` method that takes 2 arguments
+  T is a type that implements `plus` method that takes 2 arguments
 
-- `(a: any T.__plus__.0, b: any T.__plus__.1)` reads as:
+- `(a: any T.plus.0, b: any T.plus.1)` reads as:
 
-  a is the reference or value of some type that can be passed as first argument to method `T.__plus__`.
+  a is the reference or value of some type that can be passed as first argument to method `T.plus`.
 
-  b is the reference or value of some type that can be passed as first argument to method `T.__plus__`.
+  b is the reference or value of some type that can be passed as first argument to method `T.plus`.
 
 - `any` represents `ref` or `val` of the type.
 
@@ -33,7 +33,7 @@ x = add(1, 2)
 
 `add` as used above has the instantiation `def add(int, int) -> int`.
 
-The above illustration is an example of an `argument contract`. The arguments of `add` must **have types that can appear in certain positions of the `__plus__` function**.
+The above illustration is an example of an `argument contract`. The arguments of `add` must **have types that can appear in certain positions of the `plus` function**.
 
 There is also a `return contract` that an instantiation may need to satisfy.
 
@@ -43,12 +43,12 @@ Say we have an abstract class with a method that allows the implementor to retur
 abstract class Giver:
     abstract def gift(self)
 
-@implements(Giver)
+@impl(Giver)
 class StringGiver:
     def gift(self) -> str:
         return "string gift" # Has an str return type
 
-@implements(Giver)
+@impl(Giver)
 class IntGiver:
     def gift(self) -> int:
         return 8080 # Has an int return type
@@ -140,11 +140,11 @@ Also notice that we use `T: any U.0` syntax for fields just like arguments becau
 
 ```py
 class Point:
-    def __init__(self, x, y):
+    def init(self, x, y):
         self.x = x
         self.y = y
 
-    def __plus__(self, other):
+    def plus(self, other):
         return Point(self.x + other.x, self.y + other.y)
 
 def add(a, b):
@@ -156,49 +156,49 @@ point2 = Point(3, 4)
 print(point1 + point2)
 ```
 
-    add: [T: impl __plus__] (
-        self: T.__plus__.0,
-        other: T.__plus__.1,
-        @returns T.__plus__
+    add: [T: impl plus] (
+        self: T.plus.0,
+        other: T.plus.1,
+        @returns T.plus
     )
 
-    __plus__: [
-        T: impl __plus__.2,
-        U: impl __init__Point.2,
+    plus: [
+        T: impl plus.2,
+        U: impl initPoint.2,
     ] (
         self: {
-            x: T.__plus__.0,
-            y: T.__plus__.0,
+            x: T.plus.0,
+            y: T.plus.0,
         },
         other: {
-            x: T.__plus__.1,
-            y: T.__plus__.1,
+            x: T.plus.1,
+            y: T.plus.1,
         },
         @where [
-            T.__plus__ returns U.__init__Point.0,
-            T.__plus__ returns U.__init__Point.1,
+            T.plus returns U.initPoint.0,
+            T.plus returns U.initPoint.1,
         ],
-        @returns U.__init__Point
+        @returns U.initPoint
     )
 
-    __init__Point: [ T: __new__.2 ] (
+    initPoint: [ T: __new__.2 ] (
         x: T.__new__.0,
         y: T.__new__.1,
         @returns T.__new__
     )
 
-    let point1 { x: usize, y: usize } = __init__Point#1(1, 2) // Object Instantiation. __init__Point#1(usize, usize) an instantiation made here.
-    let point2 { x: usize, y: usize } = __init__Point#1(3, 4) // Object Instantiation
+    let point1 { x: usize, y: usize } = initPoint#1(1, 2) // Object Instantiation. initPoint#1(usize, usize) an instantiation made here.
+    let point2 { x: usize, y: usize } = initPoint#1(3, 4) // Object Instantiation
 
-    let tmp = __plus__#1(point1, point2) // Object Instantiation. __plus__#1(Point, Point) an instantiation made here.
+    let tmp = plus#1(point1, point2) // Object Instantiation. plus#1(Point, Point) an instantiation made here.
 
 # Generics
 
 Generics are useful for restricting an interface contract further because it allows certain conditional semantics that a developer may desire.
 
 ```py
-@where(T: Seq, U: Seq) # Reads as where T implements Seq and U implements Seq. Speculative syntax and type.
-def any_common_elements(l: T, r: U) -> bool:
+@where(T: Sequence, U: Sequence) # Reads as where T implements Seq and U implements Seq. Speculative syntax and type.
+def any_common_elements[T, U](l: T, r: U) -> bool:
     for (a, b) in zip(a, b):
         if a == b:
             return true
@@ -263,26 +263,14 @@ This means type `C` can pass where `A & B` is expected even though `B` has its `
 
 # Abstract Classes
 
-Unlike Python, Raccoon uses abstract classes to define common behaviors rather than magic method. And the reason for this is because magic methods are too limiting. This does not however mean that Raccoon does not support magic methods. It allows them where they make sense and treats them as syntax sugar.
+Unlike Python, Raccoon uses abstract classes to define common behaviors rather than magic method. And the reason for this is because magic methods are too limiting.
 
 NOTE: This part is not done yet.
 
 ```py
-@implements(Del, Str)
+@impl(Drop)
 data class Foo(value: str):
-    def str(self) -> str:
-        return f"Foo(value = {self.value})"
-
-    def del(self):
-        print("Dropping")
-```
-
-```py
-data class Foo(value: str):
-    def __str__(self) -> str:
-        return f"Foo(value = {self.value})"
-
-    def __del__(self):
+    def drop(self):
         print("Dropping")
 ```
 
@@ -320,7 +308,7 @@ data class Red(t: byte)
 data class Green(t: byte)
 data class Blue(t: byte)
 
-typealias PrimaryColorB = Red & Green & Blue
+type PrimaryColorB = Red & Green & Blue
 
 def to_byte(variant: PrimaryColorB): # This function is monomorphisable.
     return variant.t
@@ -358,11 +346,11 @@ enum class Option[T]:
     None
 
     def unwrap(self):
-        return self.t # Error because None a variant of Option[T] does not have a `t` field.
+        self.t # Error because None a variant of Option[T] does not have a `t` field.
 
     # def unwrap(self):
     #     match self:
-    #         case Some(t): return t
+    #         case Some(t): t
     #         case None: panic('unwrap called on None')
 
 ```
@@ -405,7 +393,7 @@ So the following is valid in Raccoon because all object share a root parent type
 ls = [5, "Hello"]
 ```
 
-The caveat however is that, operations like the one below, that you would expect to work won't compile. The compiler cannot determine at compile-time the type of an element at particular index at compile-time, so it does an exhaustive check to make sure the `__plus__` method can be used with `int` and `str` in any argument position.
+The caveat however is that, operations like the one below, that you would expect to work won't compile. The compiler cannot determine at compile-time the type of an element at particular index at compile-time, so it does an exhaustive check to make sure the `plus` method can be used with `int` and `str` in any argument position.
 
 ```py
 double = ls[0] + ls[0] # Error type of ls[0] can either be str or int and there is no Plus[int, str] or Plus[str, int]
@@ -417,10 +405,10 @@ You may wonder how the compiler determines the type of a container that stores v
 
 ```py
 class Vec[T]:
-    def __init__(self, capacity: int = 10):
+    def init(self, capacity: int = 10):
         self.length = 0
         self.capacity = capacity
-        self.buffer = Buffer[T](capacity)
+        self.buffer = Buffer.[T](capacity)
 
     def append(self, item: T):
         if self.length >= capacity:
@@ -489,13 +477,13 @@ Most times the compiler won't be able to determine the type of variant or `dyn` 
 ```py
 ls = [5, "Hello"]
 
-int_value = cast[int](ls[0])
-str_value = cast[int](ls[1-1]) # Raises an error because type cannot be casted.
+int_value = cast.[int](ls[0])
+str_value = cast.[int](ls[1-1]) # Raises an error because type cannot be casted.
 ```
 
 ```py
 variant = get_color()
-red = cast[PrimaryColor.Red](variant) # Raises an error if type cannot be casted.
+red = cast.[PrimaryColor.Red](variant) # Raises an error if type cannot be casted.
 ```
 
 # ref vs val
@@ -576,7 +564,7 @@ This is why the compiler does not provide a way to force things to stay on the s
 
 #### Recursive data structure issue
 
-These are data structures that contain themselves directly or indirectly. The compiler automatically adds an indirection.
+These are data structures that contain themselves directly or indirectly leading to infinite size calculation. The compiler automatically adds an indirection.
 
 ```py
 data class Node(parent: Node?, children: [Node])
@@ -598,7 +586,7 @@ data class Context()
 data class Module(context: Context)
 
 class Engine:
-    def __init__(self):
+    def init(self):
         self.context = Context()
         self.module = Module(self.context) # Holds a reference to sibling field.
 ```
@@ -611,9 +599,9 @@ data class Context()
 data class Module(context: Context)
 
 class Engine:
-    def __init__(self):
+    def init(self):
         self.context = Box(Context())
-        self.module = Module(self.context.val)
+        self.module = Module(self.context)
 ```
 
 # Sync and Send
@@ -656,20 +644,20 @@ class Thread:
 Inspired by Rust, Raccoon allows multiple implementations of a class as long there is no conflict.
 
 ```py
-@inherits(Bar)
-class Foo():
-    def __init__(self):
+@base(Bar)
+class Foo:
+    def init(self):
         self.__super__()
 
     def bar(self):
         print("Foo.bar", self.bar)
 
-@implements(Abstract[T])
+@impl(Abstract[T])
 class Foo[T]:
     def abstr(self, value: T):
         print(f"T = {value}")
 
-@implements(Abstract[int])
+@impl(Abstract[int])
 class Foo:
     def abstr(self, value: int):
         print(f"int = {value}")
@@ -705,9 +693,9 @@ result = fn(10) # 15
 For the above example, `add` is a closure that captures `x`. A temporary class is created for closures that capture variables. In this case, the compiler will generate something like this.
 
 ```py
-@implements(Fn[(int), int])
+@impl(Fn[(int), int])
 class __tmp_add:
-    def __init__(x: int, fn: (int) -> int):
+    def init(x: int, fn: (int) -> int):
         self.x = x
         self.fn = fn
 
@@ -733,7 +721,7 @@ enum class Poll[T]:
 ```
 
 ```py
-@implements(Future[int])
+@impl(Future[int])
 data class Temperature(value: int = None):
     def poll(self, ctx: Context) -> Poll[int]:
         if self.value is None:
@@ -756,7 +744,7 @@ abstract class Iterator[T]:
 ```
 
 ```py
-@implements(Iterator[T])
+@impl(Iterator[T])
 data class ListIterator[T](xs: [T], index = 0):
     def next(self) -> Option[T]:
         if self.index >= len(self.xs):
@@ -784,15 +772,17 @@ It also makes it possible to statically infer exceptions properties in the codeb
 enum class Result[T, E]:
     Ok(T)
     Err(E)
+
+type Result[T] = Result[T, BaseError]
 ```
 
 As long a type implements the `Error` type, it can be used as an exception.
 
 ```py
-@implements(Error)
+@impl(Error)
 class SomeError:
-    def __init__(self, message: str):
-        super().__init__(message)
+    def init(self, message: str):
+        super().init(message)
 ```
 
 The only major difference between Python and Raccoon exceptions is that Raccoon requires you to handle how your exceptions should be propagated.
@@ -800,13 +790,14 @@ The only major difference between Python and Raccoon exceptions is that Raccoon 
 ```py
 def handled() -> int:
     try:
-        return get_value()
-    except SomeError: # get_value() raises only SomeError, otherwise compiler will require anotating the return type with `?`.
-        return 0
+        get_value()
+    except SomeError: # get_value() raises only SomeError, otherwise compiler will require anotating the return type with `!`.
+        0
+    except:
+        1
 
-def unhandled() -> int?:
-    value = get_value()? # Can raise here if there is an exception.
-    return value
+def unhandled() -> int!:
+    get_value()! # Can raise here if there is an exception.
 ```
 
 The `handled` function can be desugared into the following code and the compiler would still accept it.
@@ -814,12 +805,12 @@ The `handled` function can be desugared into the following code and the compiler
 ```py
 def handled() -> int:
     match get_value():
-        case Ok(value): return value,
+        case Ok(value): value,
         case Err(err):
-            if isinstance(err, SomeError): # This is a static check.
-                return 0
+            if err.type() == SomeError:
+                0
             else:
-                unreachable()
+                1
 ```
 
 In addition to exceptions, Raccoon also supports `panic`s. A `panic` is a trap/signal that occurs when the program is in an invalid state.
@@ -838,31 +829,31 @@ result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python
   ARC suffers from reference cycles leaks and deadlocks.
 
   ```py
-  parent = Parent()
-
-  """
-  ParentRefs(1) = { parent }
-  """
-
   child = Child()
 
   """
-  ParentRefs(1) = { parent }
   ChildRefs(1) = { child }
+  """
+
+  parent = Parent()
+
+  """
+  ChildRefs(1) = { child }
+  ParentRefs(1) = { parent }
   """
 
   parent.child = child
 
   """
-  ParentRefs(1) = { parent }
   ChildRefs(2) = { child, parent.child }
+  ParentRefs(1) = { parent }
   """
 
   child.parent = parent
 
   """
-  ParentRefs(2) = { parent, child.parent }
   ChildRefs(2) = { child, parent.child }
+  ParentRefs(2) = { parent, child.parent }
   """
 
   """
@@ -894,8 +885,8 @@ result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python
   child.parent = WeakRef(parent)
 
   """
-  ParentRefs(1) = { parent }
   ChildRefs(2) = { child, parent.child }
+  ParentRefs(1) = { parent }
   """
 
   """
@@ -1004,7 +995,7 @@ result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python
 
   fourth = scores[3]
 
-  some = scores[3:7]
+  some = scores[3..7]
   ```
 
 ##### REFERENCES

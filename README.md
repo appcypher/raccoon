@@ -15,10 +15,10 @@ Below is an example of what Raccoon currently looks like:
 ```py
 class Person:
     """
-    Class for creating details about a person.
+    Class for creating a person.
     """
 
-    population = 0
+    mut population = 0
 
     def init(self, name, age):
         """
@@ -30,22 +30,22 @@ class Person:
 
         Person.population += 1
 
-    def del(self):
+    def drop(self):
         """
         Decrement population
         """
 
-        Person.population -= 1
+        Self.population -= 1
 
     def debug(self, f):
         """
         Create a string representation of object
         """
 
-        return f.debug_class("Person")
+        f.debug_class("Person")
             .field("name", self.name)
             .field("age", self.age)
 
 jane = Person("Jane Doe", 23)
-print("jane =", jane)
+print(f"jane = {jane}")
 ```
