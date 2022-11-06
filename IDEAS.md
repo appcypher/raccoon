@@ -11,19 +11,24 @@ def add(a, b):
 
 `add` has the following interface contract:
 
-    [ T: impl plus.2 ](a: any T.plus.0, b: any T.plus.1)
+    [
+        T : impl .plus/2,
 
-- `[ T: impl plus.2 ]` reads as:
+        A | ? T.plus[0],
+        B | ? T.plus[1],
+    ] []
+    (a: A, b: B)
 
-  T is a type that implements `plus` method that takes 2 arguments
+- `T: impl .plus/2` reads as:
 
-- `(a: any T.plus.0, b: any T.plus.1)` reads as:
+  T is a type that implements `.plus` method that takes 2 arguments
 
-  a is the reference or value of some type that can be passed as first argument to method `T.plus`.
+- `A: ? T.plus[0], B: ? T.plus[1],` reads as:
 
-  b is the reference or value of some type that can be passed as first argument to method `T.plus`.
+  A is a type (ref or val) that can be passed as first argument to method `T.plus`.
 
-- `any` represents `ref` or `val` of the type.
+  B is a type (ref or val) that can be passed as second argument to method `T.plus`.
+
 
 When we then call `add`, given that the arguments satisfy the interface contract, we instantiate a concrete `add` at compile-time.
 
@@ -41,7 +46,7 @@ Say we have an abstract class with a method that allows the implementor to retur
 
 ```py
 abstract class Giver:
-    abstract def gift(self)
+    def gift(self)
 
 @impl(Giver)
 class StringGiver:
@@ -63,8 +68,13 @@ def iterate_gift(giver: Giver):
     for gift in giver.gift():
         print(f"{gift}")
 
-iterate_gift(StringGiver()) # Okay because type returned by StringGiver.gift `str` implements __iter__ and __next__ which implements __str__ and so on.
-iterate_gift(IntGiver()) # Error because type returned by IntGiver.gift `int` does not implement __iter__ and __next__.
+def iterate_gift(giver: Giver):
+    let iter = giver.gift().iter()
+    while let Some(gift) = iter.next():
+        print(f"{gift}")
+
+iterate_gift(StringGiver()) # Okay. StringGiver.gift `str` implements iter and next which implements debug.
+iterate_gift(IntGiver()) # Error. IntGiver.gift `int` does not implement iter and next.
 ```
 
 Notice that `IntGiver` won't work with `iterate_gift` because while it satisfies its `argument contract`, it does not satisfy its `return contract`.
@@ -72,23 +82,34 @@ Notice that `IntGiver` won't work with `iterate_gift` because while it satisfies
 The `interface contract` of `iterate_gift` looks like this.
 
     [
-        T: impl gift.1,
-        U: impl __iter__.1,
-        V: impl __next__.1,
-        W: impl __str__.1,
-    ](
-        giver: any T.0,
-        @where [                                  // a is something that implements T at pos 0
-            T.gift returns any U.__iter__.0,     // T.gift returns something that implements U at pos 0
-            U.__iter__ returns any V.__next__.0, // U.__iter__ returns something that implements V at pos 0
-            V.__next__ returns any W.__str__.0,  // V.__next__ returns something that implements V at pos 0
-        ]
-        @returns W.__str__
-    )
+        T : impl .gift/1,
+        U : impl .iter/1,
+        V : impl .next/1,
+        X : impl .debug/2,
+
+        TR : return T.gift,
+        TR | ? U.iter[0],
+
+        UR : return U.iter,
+        UR | ? V.next[0],
+
+        VR : return V.next,
+        VR : impl Option,
+
+        WF : field VR#Option.Some[0],
+        WF | ? X.debug[0],
+
+        # Need to derive the type of the other argument of debug
+        C : GlobalFmt,
+        C | ? X.debug[1],
+
+        G | ? T.gift[0],
+    ] []
+    (giver: G)
 
 ```py
 def iterate_gift(giver: Giver):
-    return iter(giver.gift()).next()
+    giver.gift().iter().next()
 
 s = iterate_gift(StringGiver()) # s has type `str` from the instantiation of iterate_gift.
 ```
@@ -96,17 +117,19 @@ s = iterate_gift(StringGiver()) # s has type `str` from the instantiation of ite
 Here `iterate_gift` has the following `interface contract`:
 
     [
-        T: impl gift.1,
-        U: impl __iter__.1,
-        V: impl __next__.1,
-    ](
-        a: any T.0,
-        @where [                                  // a is something that implements T at pos 0
-            T.gift returns any U.__iter__.0,     // T returns something that implements U at pos 0
-            U.__iter__ returns any V.__next__.0, // U returns something that implements V at pos 0
-        ]
-        @returns V.__next__
-    )
+        T : impl .gift/1,
+        U : impl .iter/1,
+        V : impl .next/1,
+
+        TR : return T.gift,
+        TR | ? U.iter[0],
+
+        UR : return U.iter,
+        UR | ? V.next[0],
+
+        VR : return V.next,
+    ] [ VR ]
+    (giver: G)
 
 `iterate_gift` as used above has the instantiation `iterate_gift(void) -> str`. `void` because `StringGiver` has no field, so no space is allocated for it.
 
@@ -124,73 +147,23 @@ def who_am_i(something):
 `who_am_i` will only work for arguments that have a name method. The interface contract of `who_am_i` looks like this:
 
     [
-        T: impl __str__.1
-    ](
-        something: any {
-            name: T.__str__.0
-        },
-        @returns T.__str__
-    )
+        T : impl @name/1,
+        U : impl .debug/2,
 
-Notice the `any { name: T.__str__.0 }` syntax. It used to refer to a field. `impl func.x` is used for methods.
+        TR : return T.@name,
+        TR : ? U.debug[0],
 
-Also notice that we use `T: any U.0` syntax for fields just like arguments because they are values that must also conform to some implementation.
 
-# Additional Example
+        # Need to derive the type of the other argument of debug
+        C : std::fmt::GlobalFmt,
+        C | ? X.debug[1],
 
-```py
-class Point:
-    def init(self, x, y):
-        self.x = x
-        self.y = y
+        A | ? T.@name[0],
+    ] []
+    (something: ? A)
 
-    def plus(self, other):
-        return Point(self.x + other.x, self.y + other.y)
+Notice how `name` field is represented as the `@name` method. That is because the compiler will generate a corresponding method for the argument if it has a name field.
 
-def add(a, b):
-    return a + b
-
-point1 = Point(1, 2)
-point2 = Point(3, 4)
-
-print(point1 + point2)
-```
-
-    add: [T: impl plus] (
-        self: T.plus.0,
-        other: T.plus.1,
-        @returns T.plus
-    )
-
-    plus: [
-        T: impl plus.2,
-        U: impl initPoint.2,
-    ] (
-        self: {
-            x: T.plus.0,
-            y: T.plus.0,
-        },
-        other: {
-            x: T.plus.1,
-            y: T.plus.1,
-        },
-        @where [
-            T.plus returns U.initPoint.0,
-            T.plus returns U.initPoint.1,
-        ],
-        @returns U.initPoint
-    )
-
-    initPoint: [ T: __new__.2 ] (
-        x: T.__new__.0,
-        y: T.__new__.1,
-        @returns T.__new__
-    )
-
-    let point1 { x: usize, y: usize } = initPoint#1(1, 2) // Object Instantiation. initPoint#1(usize, usize) an instantiation made here.
-    let point2 { x: usize, y: usize } = initPoint#1(3, 4) // Object Instantiation
-
-    let tmp = plus#1(point1, point2) // Object Instantiation. plus#1(Point, Point) an instantiation made here.
 
 # Generics
 
@@ -215,23 +188,25 @@ Raccoon handles type safety differently. For example, when a function can return
 ```py
 def unsafe():
     if cond():
-        return StringGiver().gift()
+        "5"
     else:
-        return IntGiver().gift()
+        5
 
 t = unsafe()
 ```
 
 `unsafe` as used above has the instantiation `def unsafe() -> int & str`.
 
-`int & str` is implemented as a [tagged union](https://en.wikipedia.org/wiki/Tagged_union). On the other hand `dyn` objects are implemented as `[tag, ..fields]`in memory.
+`int & str` has a similar data layout as [Rust enum](https://cheats.rs/#custom-types) where the layout is usually a tagged union `(tag: {integer}, union: {union})` unless the compiler can optimize the tag away. `dyn _`, on the other hand, are represented as `(obj: ptr *, vtable: ptr vtable)` also like Rust.
+
+`dyn` implies reference. You are not dealing with the underlying object directly.
 
 `int` and `str` are variants of `int & str`.
 
 Intersection types are similar to `dyn AbstractClass`, except that they are used in places where the compiler can easily determine number of types that make up the intersection. For example, enum variants, unsafe return types, etc.
 
 ```py
-x: int & str = get_int_or_str()
+x: int & str = unsafe()
 double = x + x
 ```
 
@@ -284,12 +259,12 @@ union class JSNumber:
     float: f64
 
 JSNumber.float = 2.0
-print('0x{0:x}'.format(JSNumber.int)) # 0x4000000000000000
+print(f"0x{JSNumber.int:x}") # 0x4000000000000000
 ```
 
-# Enum Classes
+# Enum Classes and Monomorphism
 
-Enum classes are intersection types and their variants normal classes.
+Enum classes are intersection types and their variants are normal classes.
 
 ```py
 enum class PrimaryColorA:
@@ -298,7 +273,7 @@ enum class PrimaryColorA:
     Blue(t: byte)
 
     def to_byte(self):
-        return self.t # Okay because the variants all have common field type
+        self.t
 ```
 
 The example above can be desugared into the following:
@@ -310,49 +285,83 @@ data class Blue(t: byte)
 
 type PrimaryColorB = Red & Green & Blue
 
-def to_byte(variant: PrimaryColorB): # This function is monomorphisable.
-    return variant.t
+def to_byte(variant: PrimaryColorB):
+    variant.t
 ```
 
-The only thing we didn't capture here is the `PrimaryColor.Variant` namespace.
+The only thing we didn't capture here is the `PrimaryColor.[Variant]` namespace.
 
-In the examples above, notice that the enum's variants share a single method `to_byte` that apply to all variants. We could have also used match, which through exhaustion allows monomorphisation.
-
-```py
-def to_byte(variant: PrimaryColorA): # This function will be monomorphised.
-    return variant.t
-```
+In the examples above, notice that the enum's variants share a single method `to_byte` that apply to all variants. These functions are succeptible to monomorphisation.
 
 ```py
-def to_byte(variant: PrimaryColorB): # This function can also be monomorphised.
-    return match variant:
+# These functions can be monomorphised depending on how they are called.
+
+def to_byte(variant: PrimaryColorA):
+    variant.t
+
+def to_byte(variant: PrimaryColorB):
+    variant.t
+
+def to_byte(variant: PrimaryColorA):
+    match variant:
        case Red(t): t
        case Blue(t): t
        case Green(t): t
+
+def to_byte(variant: PrimaryColorB):
+    match variant.type():
+       case Red as r: r.t
+       case Blue as b: b.t
+       case Green as g: g.t
+```
+
+Or we can be explicit about not making them monomorphisable.
+
+```py
+# These functions are runtime-polymorphic.
+
+def to_byte(variant: dyn PrimaryColorA):
+    match variant:
+       case Red(t): t
+       case Blue(t): t
+       case Green(t): t
+
+def to_byte(variant: dyn PrimaryColorB):
+    match variant.type():
+       case Red as r: r.t
+       case Blue as b: b.t
+       case Green as g: g.t
 ```
 
 Because enum variants are regular classes, we can have specialized method for them.
 
 ```py
 def red_to_byte(self: PrimaryColor.Red): # This is a specialised function.
-    return self.t
+    self.t
 ```
 
 Methods and fields accessed on an intersection type must apply to all the variants.
 
 ```py
 enum class Option[T]:
+    @no_wrap
     Some(t: T)
     None
 
     def unwrap(self):
-        self.t # Error because None a variant of Option[T] does not have a `t` field.
+        self.t # Error because None a variant of Option[T] does not have a `t` field
+```
 
-    # def unwrap(self):
-    #     match self:
-    #         case Some(t): t
-    #         case None: panic('unwrap called on None')
+```py
+enum class Option[T]:
+    @no_wrap
+    Some(t: T)
+    None
 
+    def unwrap(self) -> T:
+        match self:
+            case Some(t): t
+            case _: panic("unwrap called on None")
 ```
 
 https://rust-lang.github.io/unsafe-code-guidelines/layout/enums.html
@@ -371,6 +380,7 @@ Let's assume `List` class is declared like this:
 ```py
 class List[T]:
     # ...
+    pass
 ```
 
 It expects all its items to be of type `T`, but we have given it two concrete types, `StringGiver` and `IntGiver`.
@@ -408,45 +418,28 @@ class Vec[T]:
     def init(self, capacity: int = 10):
         self.length = 0
         self.capacity = capacity
-        self.buffer = Buffer.[T](capacity)
+        self.buffer = Buffer.[T].alloc(capacity)
 
+@where(T: dyn _)
+class Vec[T]:
     def append(self, item: T):
         if self.length >= capacity:
             self.resize()
-        self.buffer.alloc(self.length + 1, item)
+        self.buffer.insert(item, at: self.length + 1)
         self.length += 1
 
-    # ...
-
-mixed = Vec() # T resolves to `[ dyn __str__.0, ... ]`
+mixed = Vec() # T resolves to `[ dyn debug.0, ... ]`
 mixed.append(1) # T is int here
 mixed.append("Hello") # T is str here
 
 print(mixed[0]) # Final resolution is based on this shared method.
 ```
 
-The reason this works is because Buffer implements `dyn _`.
-
-```py
-# Buffer implementation for dynamic types.
-# `_` means the final type is decided by the total usage of the field.
-@where(T: dyn _)
-class Buffer[T]:
-    def alloc(self, position: int, item: T):
-        # ...
-
-# Buffer implementation for other types with known compile-time shape.
-# Concrete types instantiated from __impl__ and intersection types.
-class Buffer[T]:
-    def alloc(self, position: int, item: T):
-        # ...
-```
-
-`Buffer[T]` gets its final type from `Vec[T]`. And since Buffer allows a `T: dyn _`, the usage of the instance method `Vec.append.T` with different types `int` and `str` made it resolve into a `dyn _`.
+The usage of the instance method `Vec.append.T` with different types `int` and `str` made it resolve into a Vec with `dyn _`.
 
 Any method argument that holds a value of such `T` will then be given a reference/pointer to the tagged value which will be stored on the heap. Which is the case for `append`'s `item` parameter. Raccoon does not support `dyn _` fields or variables.
 
-Another thing worth noting is that even though the compiler resolves a `dyn _` to a dyn of field and method implementations (e.g. `[dyn __str__.0]`), the compiler does not forget (erase) the actual types in subsequent resolutions.
+Another thing worth noting is that even though the compiler resolves a `dyn _` to a dyn of field and method implementations (e.g. `[dyn debug.0]`), the compiler does not forget (erase) the actual types in subsequent resolutions.
 
 ```py
 values = [1, "Hello"] # [ dyn deep_copy.0, ... ]
@@ -477,13 +470,13 @@ Most times the compiler won't be able to determine the type of variant or `dyn` 
 ```py
 ls = [5, "Hello"]
 
-int_value = cast.[int](ls[0])
-str_value = cast.[int](ls[1-1]) # Raises an error because type cannot be casted.
+int_value = dyn_cast.[int](ls[0])
+str_value = dyn_cast.[int](ls[1-1]) # Raises an error because type cannot be casted.
 ```
 
 ```py
 variant = get_color()
-red = cast.[PrimaryColor.Red](variant) # Raises an error if type cannot be casted.
+red = dyn_cast.[PrimaryColor.Red](variant) # Raises an error if type cannot be casted.
 ```
 
 # ref vs val
@@ -529,8 +522,8 @@ Racoon only stores to the heap in the following scenario: if a longer-lived obje
 
 ```py
 def get_person() -> Person:
-    age  = 55                # age lifetime ends in this scope
-    name = "John"            # name lifetime ends in this scope so it is converted to `name = Box("James")`
+    age  = 55     # age lifetime ends in this scope
+    name = "John" # name lifetime ends in this scope so it is converted to `name = Box("John")`
 
     # Person has a longer lifetime.
     # name's stack-livable part is stored on the heap.
@@ -634,7 +627,7 @@ Here, `Thread.spawn` instantiation contains a lambda that captures its environme
 
 ```py
 class Thread:
-    @where(F: Send & def() -> void)
+    @where(F: Send & () -> ())
     def spawn(fn: F):
         pass
 ```
@@ -694,14 +687,14 @@ For the above example, `add` is a closure that captures `x`. A temporary class i
 
 ```py
 @impl(Fn[(int), int])
-class __tmp_add:
-    def init(x: int, fn: (int) -> int):
+class __cc__local__add:
+    def init(x: ref int, fn: (int) -> int):
         self.x = x
         self.fn = fn
 
     def call(self, args: (int)) -> int:
         (y) = args
-        return self.fn(self.x, y)
+        self.fn(self.x, y)
 ```
 
 # Futures / Streams
@@ -716,6 +709,7 @@ asbstract class Stream[T]:
     def poll_next(self, ctx: Context) -> Poll[Option[T]]
 
 enum class Poll[T]:
+    @no_wrap
     Ready(T),
     Pending
 ```
@@ -769,29 +763,26 @@ It also makes it possible to statically infer exceptions properties in the codeb
 
 ```py
 @where(E: Error)
-enum class Result[T, E]:
+enum class Result[T, E = Error]:
+    @no_wrap
     Ok(T)
     Err(E)
-
-type Result[T] = Result[T, BaseError]
 ```
 
-As long a type implements the `Error` type, it can be used as an exception.
+As long as a type inherits the `Error` type, it can be used as an exception.
 
 ```py
-@impl(Error)
+@base(Error)
 class SomeError:
     def init(self, message: str):
-        super().init(message)
+        super(message)
 ```
-
-The only major difference between Python and Raccoon exceptions is that Raccoon requires you to handle how your exceptions should be propagated.
 
 ```py
 def handled() -> int:
     try:
         get_value()
-    except SomeError: # get_value() raises only SomeError, otherwise compiler will require anotating the return type with `!`.
+    except SomeError:
         0
     except:
         1
@@ -800,11 +791,14 @@ def unhandled() -> int!:
     get_value()! # Can raise here if there is an exception.
 ```
 
-The `handled` function can be desugared into the following code and the compiler would still accept it.
+The `handled` function can be desugared into the following code.
 
 ```py
 def handled() -> int:
-    match get_value():
+    def __cc_try_0() -> int!:
+        get_value()!
+
+    match __cc_try_0():
         case Ok(value): value,
         case Err(err):
             if err.type() == SomeError:
@@ -818,6 +812,83 @@ Unlike Python, Raccoon panics for incidences like division by zero rather than r
 
 ```py
 result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python, it panics instead.
+```
+
+# Gradual Rigidity
+
+Gradual rigidity is about making certain features of the language that are great for prototyping, but not so great for production, opt-in. This feature can be applied at package, module, or file level.
+
+This means one can set them to report as errors, warnings, or ignore them entirely.
+
+## Type inference
+
+When function type signature is not specified
+
+```py
+def foo(x): # problematic
+    x + x
+
+y = foo(5)
+```
+
+When return type does not reflect error propagation
+
+```py
+def foo(): # problematic
+    raise Error("some error occured")
+```
+
+When type is inferred as intersection type
+
+```py
+def unsafe():
+    if cond():
+        return 5
+    else:
+        return "5" # problematic
+```
+
+## Non-zero-cost abstraction
+
+When there is field structural polymorphism in function causing `dyn T` arguments.
+
+```py
+def get_name(x):
+    x.name # problematic
+```
+
+When there is a call to a polymorphic function that generates a function instance with `dyn T` arguments.
+
+```py
+def foo(x: AbstractClass):
+    x.bar()
+
+values: [AbstractClass] = get_values()
+foo(values.last()!) # problematic
+```
+
+When the fields of recursive types are automatically boxed causing heap allocation
+
+```py
+data class Node(parent: Node?, children: [Node]) # problematic
+```
+
+When the fields of self-referencing types are automatically boxed causing heap allocation
+
+```py
+class Engine:
+    def init(self):
+        self.context = Context()
+        self.module = Module(self.context) # problematic
+```
+
+When variables with escaping lifetimes are automatically boxed causing heap allocation
+
+```py
+def get_person() -> Person:
+    age  = 55
+    name = "James"
+    Person(name, age) # problematic
 ```
 
 # Garbage Collection
@@ -941,7 +1012,7 @@ result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python
       # Foo has objects it needs inner function frames to deallocate, so it sets pointer to deallocation list.
       set_global_deallocatable_ptr
 
-      bar (ref c, ref a, ref d) { # bar frame; knows nothing about caller function frame
+      bar (c: ref, a: ref, d: ref) { # bar frame; knows nothing about caller function frame
           a <- c = Obj1() <- Obj3() # Cross-frame cycle detection!
           e      = Obj5()
 
@@ -950,7 +1021,7 @@ result = 5 / 0 # This does not raise a `ZeroDivisionError` exception like Python
           # We call `free_transferred_deallocatable` after every last use of an arg passed by ref.
           free_transferred_deallocatable :: a, c
 
-          qux (ref d) { # qux frame; knows nothing about caller function frame
+          qux (d: ref) { # qux frame; knows nothing about caller function frame
               free_transferred_deallocatable :: d
           }
       }
