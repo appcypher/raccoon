@@ -19,16 +19,15 @@ def add(a, b):
     ] []
     (a: A, b: B)
 
-- `T: impl .plus/2` reads as:
+- `T : impl .plus/2` reads as:
 
   T is a type that implements `.plus` method that takes 2 arguments
 
-- `A: ? T.plus[0], B: ? T.plus[1],` reads as:
+- `A | ? T.plus[0], B | ? T.plus[1],` reads as:
 
   A is a type (ref or val) that can be passed as first argument to method `T.plus`.
 
   B is a type (ref or val) that can be passed as second argument to method `T.plus`.
-
 
 When we then call `add`, given that the arguments satisfy the interface contract, we instantiate a concrete `add` at compile-time.
 
@@ -50,8 +49,8 @@ abstract class Giver:
 
 @impl(Giver)
 class StringGiver:
-    def gift(self) -> str:
-        return "string gift" # Has an str return type
+    def gift(self) -> String:
+        return "string gift" # Has an String return type
 
 @impl(Giver)
 class IntGiver:
@@ -73,7 +72,7 @@ def iterate_gift(giver: Giver):
     while let Some(gift) = iter.next():
         print(f"{gift}")
 
-iterate_gift(StringGiver()) # Okay. StringGiver.gift `str` implements iter and next which implements debug.
+iterate_gift(StringGiver()) # Okay. StringGiver.gift `String` implements iter and next which implements debug.
 iterate_gift(IntGiver()) # Error. IntGiver.gift `int` does not implement iter and next.
 ```
 
@@ -111,7 +110,7 @@ The `interface contract` of `iterate_gift` looks like this.
 def iterate_gift(giver: Giver):
     giver.gift().iter().next()
 
-s = iterate_gift(StringGiver()) # s has type `str` from the instantiation of iterate_gift.
+s = iterate_gift(StringGiver()) # s has type `String` from the instantiation of iterate_gift.
 ```
 
 Here `iterate_gift` has the following `interface contract`:
@@ -164,7 +163,6 @@ def who_am_i(something):
 
 Notice how `name` field is represented as the `@name` method. That is because the compiler will generate a corresponding method for the argument if it has a name field.
 
-
 # Generics
 
 Generics are useful for restricting an interface contract further because it allows certain conditional semantics that a developer may desire.
@@ -187,26 +185,24 @@ Raccoon handles type safety differently. For example, when a function can return
 
 ```py
 def unsafe():
-    if cond():
-        "5"
-    else:
-        5
+    if cond(): "5"
+    else: 5
 
 t = unsafe()
 ```
 
-`unsafe` as used above has the instantiation `def unsafe() -> int & str`.
+`unsafe` as used above has the instantiation `def unsafe() -> int & String`.
 
-`int & str` has a similar data layout as [Rust enum](https://cheats.rs/#custom-types) where the layout is usually a tagged union `(tag: {integer}, union: {union})` unless the compiler can optimize the tag away. `dyn _`, on the other hand, are represented as `(obj: ptr *, vtable: ptr vtable)` also like Rust.
+`int & String` has a similar data layout as [Rust enum](https://cheats.rs/#custom-types) where the layout is usually a tagged union `(tag: {integer}, union: {union})` unless the compiler can optimize the tag away. `dyn _`, on the other hand, are represented as `(obj: ptr *, vtable: ptr vtable)` also like Rust.
 
 `dyn` implies reference. You are not dealing with the underlying object directly.
 
-`int` and `str` are variants of `int & str`.
+`int` and `String` are variants of `int & String`.
 
 Intersection types are similar to `dyn AbstractClass`, except that they are used in places where the compiler can easily determine number of types that make up the intersection. For example, enum variants, unsafe return types, etc.
 
 ```py
-x: int & str = unsafe()
+x: int & String = unsafe()
 double = x + x
 ```
 
@@ -229,8 +225,8 @@ https://stackoverflow.com/questions/59722333/union-and-intersection-of-types/597
 Raccoon's intersection types is position-independent. This behavior is naturally expected of method members but it also applies to field members.
 
 ```py
-data class A(x: int, y: str)
-data class B(w: str, x: int)
+data class A(x: int, y: String)
+data class B(w: String, x: int)
 data class C(x: int)
 ```
 
@@ -244,7 +240,7 @@ NOTE: This part is not done yet.
 
 ```py
 @impl(Drop)
-data class Foo(value: str):
+data class Foo(value: String):
     def drop(self):
         print("Dropping")
 ```
@@ -345,7 +341,7 @@ Methods and fields accessed on an intersection type must apply to all the varian
 ```py
 enum class Option[T]:
     @no_wrap
-    Some(t: T)
+    Some(T)
     None
 
     def unwrap(self):
@@ -355,7 +351,7 @@ enum class Option[T]:
 ```py
 enum class Option[T]:
     @no_wrap
-    Some(t: T)
+    Some(T)
     None
 
     def unwrap(self) -> T:
@@ -403,10 +399,10 @@ So the following is valid in Raccoon because all object share a root parent type
 ls = [5, "Hello"]
 ```
 
-The caveat however is that, operations like the one below, that you would expect to work won't compile. The compiler cannot determine at compile-time the type of an element at particular index at compile-time, so it does an exhaustive check to make sure the `plus` method can be used with `int` and `str` in any argument position.
+The caveat however is that, operations like the one below, that you would expect to work won't compile. The compiler cannot determine at compile-time the type of an element at particular index at compile-time, so it does an exhaustive check to make sure the `plus` method can be used with `int` and `String` in any argument position.
 
 ```py
-double = ls[0] + ls[0] # Error type of ls[0] can either be str or int and there is no Plus[int, str] or Plus[str, int]
+double = ls[0] + ls[0] # Error type of ls[0] can either be String or int and there is no Plus[int, String] and Plus[String, int]
 ```
 
 :warning: This section is unfinished and contains a rough idea of how I want things to work.
@@ -428,33 +424,33 @@ class Vec[T]:
         self.buffer.insert(item, at: self.length + 1)
         self.length += 1
 
-mixed = Vec() # T resolves to `[ dyn debug.0, ... ]`
+mixed = Vec() # T resolves to `[ dyn .debug/1, ... ]`
 mixed.append(1) # T is int here
-mixed.append("Hello") # T is str here
+mixed.append("Hello") # T is String here
 
 print(mixed[0]) # Final resolution is based on this shared method.
 ```
 
-The usage of the instance method `Vec.append.T` with different types `int` and `str` made it resolve into a Vec with `dyn _`.
+The usage of the instance method `Vec.append.T` with different types `int` and `String` made it resolve into a Vec with `dyn _`.
 
 Any method argument that holds a value of such `T` will then be given a reference/pointer to the tagged value which will be stored on the heap. Which is the case for `append`'s `item` parameter. Raccoon does not support `dyn _` fields or variables.
 
-Another thing worth noting is that even though the compiler resolves a `dyn _` to a dyn of field and method implementations (e.g. `[dyn debug.0]`), the compiler does not forget (erase) the actual types in subsequent resolutions.
+Another thing worth noting is that even though the compiler resolves a `dyn _` to a dyn of field and method implementations (e.g. `[dyn .debug/1]`), the compiler does not forget (erase) the actual types in subsequent resolutions.
 
 ```py
-values = [1, "Hello"] # [ dyn deep_copy.0, ... ]
+values = [1, "Hello"] # [ dyn .deep_copy/1, ... ]
 
 # ...
 
 def copy_first(ls):
     return ls[0].deep_copy()
 
-# copy_first can return int or str.
-# new_copy has type `int & str`.
-new_copy = copy_first(values) # def copy_first(dyn _) -> int & str
+# copy_first can return int or String.
+# new_copy has type `int & String`.
+new_copy = copy_first(values) # def copy_first(dyn _) -> int & String
 ```
 
-This works because at the instantiation of `copy_first(values)`, the compiler still remembers the types behind `values: dyn _`. So it is able to check the return types of all the methods of `int & str`.
+This works because at the instantiation of `copy_first(values)`, the compiler still remembers the types behind `values: dyn _`. So it is able to check the return types of all the methods of `int & String`.
 
 # Memory Layouting
 
@@ -506,6 +502,36 @@ def who_am_i(val person):
     print(f"I am {person.name}")
 
 who_am_i(john) # function takes a shallow copy of john's stack-livable part.
+```
+
+# ref mut
+
+Just like Rust, Raccoon provides safety for concurrent access to mutable data. Unlike Rust, this is not enforced at the function level, but at the thread and unknown-ffi level. This means scopes of mutable and immutable references can overlap within a scope.
+
+```py
+def inc_counter(counter: ref mut int):
+    counter += 1
+
+def show_counter(counter: ref int):
+    print(counter)
+
+mut counter = 0
+a = ref counter
+b = ref mut counter
+
+inc_counter(b)
+show_counter(a)
+```
+
+Usually you don't have to be explicit about references because the compiler will infer based on clear rules.
+
+When a variable is determined to escape a thread, the compiler will automatically wrap the type in `Arc[T]` or `Arc[Mutex[T]]`.
+
+```py
+def share_with_another_thread(ref mut value: int): # upgraded to Arc[Mutex[int]]
+    Thread.spawn(def ():
+        value = 5
+    )
 ```
 
 # Stack vs Heap Allocation
@@ -605,19 +631,16 @@ All types are `!Sync` until they are made `Sync` by types like `Arc[Mutex[T]]`.
 
 All types are `Send` unless they specify that they are `!Send` by implementing `!Send`, a special compiler abstract class.
 
-When sharing ownership of objects across threads, using the `shared` keyword switches its underlying implementation from `T` or `Box[T]` to either `Arc[T]` or `Arc[Mutex[T]]`, depending on the context.
-
 `Arc[Mutex[T]]` makes `!Sync` type `Sync` but it does not make `!Send` type `Send`.
 Actually `Mutex[T]` is what makes a `!Sync` type `Sync`, the `Arc[T]` is only needed to ensure that a `Send` type is garbage-collected correctly across threads.
 
 Raccoon does not have an `Rc[T]` type because it uses a thread-local garbage collection technique that does not require runtime reference counting.
 
 ```py
-arc_total = shared 4500 # `Arc[Mutex[int]]`
+mut arc_total = 4500 # `Arc[Mutex[int]]`
 
-handler = Thread.spawn(
-    def ():
-        arc_total = 4300 # captured by lambda.
+handler = Thread.spawn(def ():
+    arc_total = 4300 # captured by lambda.
 )
 ```
 
@@ -697,15 +720,15 @@ class __cc__local__add:
         self.fn(self.x, y)
 ```
 
-# Futures / Streams
+# Futures / AsyncIterators
 
 Inspired by Rust's futures and streams.
 
 ```py
-asbstract class Future[T]:
+abstract class Future[T]:
     def poll(self, ctx: Context) -> Poll[T]
 
-asbstract class Stream[T]:
+abstract class AsyncIterator[T]:
     def poll_next(self, ctx: Context) -> Poll[Option[T]]
 
 enum class Poll[T]:
@@ -739,15 +762,14 @@ abstract class Iterator[T]:
 
 ```py
 @impl(Iterator[T])
-data class ListIterator[T](xs: [T], index = 0):
+data class ListIter[T](xs: [T], index = 0):
     def next(self) -> Option[T]:
-        if self.index >= len(self.xs):
-            return None
+        if self.index >= len(self.xs): None
         else:
             self.index += 1
-            return self.xs[self.index - 1]
+            self.xs[self.index - 1]
 
-for i in ListIterator([1, 2, 3, 4, 5]):
+for i in ListIter([1, 2, 3, 4, 5]):
     print(i)
 ```
 
@@ -774,7 +796,7 @@ As long as a type inherits the `Error` type, it can be used as an exception.
 ```py
 @base(Error)
 class SomeError:
-    def init(self, message: str):
+    def init(self, message: String):
         super(message)
 ```
 
@@ -801,10 +823,8 @@ def handled() -> int:
     match __cc_try_0():
         case Ok(value): value,
         case Err(err):
-            if err.type() == SomeError:
-                0
-            else:
-                1
+            if err.type() == SomeError: 0
+            else: 1
 ```
 
 In addition to exceptions, Raccoon also supports `panic`s. A `panic` is a trap/signal that occurs when the program is in an invalid state.
@@ -831,7 +851,7 @@ def foo(x): # problematic
 y = foo(5)
 ```
 
-When return type does not reflect error propagation
+When return type is not specified for error propagation
 
 ```py
 def foo(): # problematic
@@ -842,10 +862,17 @@ When type is inferred as intersection type
 
 ```py
 def unsafe():
-    if cond():
-        return 5
-    else:
-        return "5" # problematic
+    if cond(): 5
+    else: "5" # problematic
+```
+
+When a class is untyped
+
+```py
+class Person:
+    def init(self, name, age):
+        self.name = name # problematic
+        self.age = age # problematic
 ```
 
 ## Non-zero-cost abstraction
@@ -890,6 +917,25 @@ def get_person() -> Person:
     name = "James"
     Person(name, age) # problematic
 ```
+
+When a variable is automatically upgraded to `Arc[T]` or `Arc[Mutex[T]]` causing heap allocation.
+
+```py
+def share_with_another_thread(ref mut value: int): # problematic
+    Thread.spawn(def ():
+        value = 5
+    )
+```
+
+# Standard Libraries
+
+There are multiple standard libraries.
+
+- `std-core` (source)
+- `std-sys` (static extern files + dyld + libc.dylib)
+    - `sys-mem` feature
+        - `collections` feature
+    - ...
 
 # Garbage Collection
 

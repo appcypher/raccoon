@@ -33,7 +33,7 @@ pub struct Lexer<'a> {
 }
 
 /// Integer base kinds.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum IntBase {
     Dec,
     Bin,
@@ -41,7 +41,7 @@ pub enum IntBase {
     Hex,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 /// The different kinds of indentation.
 pub enum IndentKind {
     Unknown,
@@ -49,7 +49,7 @@ pub enum IndentKind {
     Space,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 /// The different kinds of indentation.
 pub enum BracketKind {
     Parens,
@@ -252,7 +252,7 @@ impl<'a> Lexer<'a> {
                             self.eat_char();
                             self.eat_char();
 
-                            Token::new(Imag(format!("0")), Span::new(start, self.cursor))
+                            Token::new(Imag(String::from("0")), Span::new(start, self.cursor))
                         } else {
                             Token::new(Integer("0".into(), IntegerKind::Dec), Span::new(start, self.cursor))
                         }),
@@ -346,7 +346,7 @@ impl<'a> Lexer<'a> {
                             let char = self.eat_char().unwrap();
                             Ok(self.tokenize_identifier_or_keyword(format!("f{char}"), start))
                         }
-                        _ => Ok(self.tokenize_identifier_or_keyword(format!("f"), start)),
+                        _ => Ok(self.tokenize_identifier_or_keyword(String::from("f"), start)),
                     }
                 }
                 'b' => {
@@ -376,7 +376,7 @@ impl<'a> Lexer<'a> {
                             let char = self.eat_char().unwrap();
                             Ok(self.tokenize_identifier_or_keyword(format!("b{char}"), start))
                         }
-                        _ => Ok(self.tokenize_identifier_or_keyword(format!("b"), start)),
+                        _ => Ok(self.tokenize_identifier_or_keyword(String::from("b"), start)),
                     }
                 }
                 'r' => {
@@ -429,7 +429,7 @@ impl<'a> Lexer<'a> {
                                     let char = self.eat_char().unwrap();
                                     Ok(self.tokenize_identifier_or_keyword(format!("rb{char}"), start))
                                 }
-                                _ => Ok(self.tokenize_identifier_or_keyword(format!("rb"), start)),
+                                _ => Ok(self.tokenize_identifier_or_keyword(String::from("rb"), start)),
                             }
                         }
                         Some('f') => {
@@ -459,14 +459,14 @@ impl<'a> Lexer<'a> {
                                     let char = self.eat_char().unwrap();
                                     Ok(self.tokenize_identifier_or_keyword(format!("rf{char}"), start))
                                 }
-                                _ => Ok(self.tokenize_identifier_or_keyword(format!("rf"), start)),
+                                _ => Ok(self.tokenize_identifier_or_keyword(String::from("rf"), start)),
                             }
                         }
                         Some('a'..='z' | 'A'..='Z' | '0'..='9' | '_') => {
                             let char = self.eat_char().unwrap();
                             Ok(self.tokenize_identifier_or_keyword(format!("r{char}"), start))
                         }
-                        _ => Ok(self.tokenize_identifier_or_keyword(format!("r"), start)),
+                        _ => Ok(self.tokenize_identifier_or_keyword(String::from("r"), start)),
                     }
                 }
                 'a'..='z' | 'A'..='Z' | '_' => Ok(self.tokenize_identifier_or_keyword(format!("{char}"), start)),
@@ -700,23 +700,20 @@ impl Lexer<'_> {
             };
         } else if peek_char == None {
             // If the code ends with a newline, calculate dedents.
-            match indent_diff.cmp(&0) {
-                Ordering::Less => {
-                    // Add dedents in token buffer except the last.
-                    for _ in 1..(indent_diff_abs / self.indent_size) {
-                        self.token_buffer
-                            .push(Token::new(Dedent, Span::new(start, self.cursor)));
-                    }
-
-                    self.indent_level = space_count / self.indent_size;
-
-                    return Ok(Token::new(Dedent, Span::new(start, self.cursor)));
+            if indent_diff.cmp(&0) == Ordering::Less {
+                // Add dedents in token buffer except the last.
+                for _ in 1..(indent_diff_abs / self.indent_size) {
+                    self.token_buffer
+                        .push(Token::new(Dedent, Span::new(start, self.cursor)));
                 }
-                _ => (),
+
+                self.indent_level = space_count / self.indent_size;
+
+                return Ok(Token::new(Dedent, Span::new(start, self.cursor)));
             }
         }
 
-        Ok(Token::new(Newline, Span::new(start, self.cursor)).into())
+        Ok(Token::new(Newline, Span::new(start, self.cursor)))
     }
 
     /// Tokenizes integers that start with `0b | 0o | 0x`.
@@ -919,7 +916,7 @@ impl Lexer<'_> {
                 _ => {
                     use crate::lexer::Keyword;
                     let kind = Keyword::try_from(&*initial_string)
-                        .map(|keyword| TokenKind::Keyword(keyword))
+                        .map(TokenKind::Keyword)
                         .unwrap_or(TokenKind::Identifier(initial_string));
 
                     break Token::new(kind, Span::new(start, self.cursor));
@@ -933,7 +930,7 @@ impl Lexer<'_> {
 impl Lexer<'_> {
     /// Lexes `"." digit_part exponent?`
     fn lex_float_fraction(&mut self, start: u32) -> Result<String> {
-        let mut fraction = format!(".");
+        let mut fraction = String::from(".");
 
         // Lex compulsory `digit_part = digit ("_"? digit)*`
         match self.peek_char() {
@@ -1051,7 +1048,7 @@ impl Lexer<'_> {
 
     /// Lexes `"e" ("+" | "-")? digit_part`
     fn lex_float_exponent(&mut self, start: u32) -> Result<String> {
-        let mut exponent = format!("e");
+        let mut exponent = String::from("e");
 
         // Lex ("+" | "-")?
         if matches!(self.peek_char(), Some('-' | '+')) {

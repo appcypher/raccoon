@@ -1374,6 +1374,7 @@ fn can_tokenize_dec_integers() {
     );
 }
 
+// TODO(appcypher): Remove and write a proptest instead.
 #[test]
 fn can_tokenize_identifiers() {
     let result_no_string_prefix_conflict =
@@ -1448,9 +1449,10 @@ fn can_tokenize_identifiers() {
     );
 }
 
+// TODO(appcypher): Break it up and make it minimal and write an exhaustive proptest instead.
 #[test]
 fn can_tokenize_keywords() {
-    let result_valid_keywords = get_tokens("and as assert async await break class const continue def del elif else enum except false finally for from global if import in interface is lambda let macro match mut nonlocal not or pass ptr raise ref return true try typealias val var where while with yield");
+    let result_valid_keywords = get_tokens("and as assert async await break class const continue def del elif else enum except false finally for from global if import in interface is lambda let macro match mut nonlocal not or pass ptr pub raise ref return true try typealias val var where while with yield");
 
     assert_eq!(
         result_valid_keywords,
@@ -1490,18 +1492,19 @@ fn can_tokenize_keywords() {
             TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Or), Span::new(179, 181))),
             TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Pass), Span::new(182, 186))),
             TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Ptr), Span::new(187, 190))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Raise), Span::new(191, 196))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Ref), Span::new(197, 200))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Return), Span::new(201, 207))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::True), Span::new(208, 212))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Try), Span::new(213, 216))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Typealias), Span::new(217, 226))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Val), Span::new(227, 230))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Var), Span::new(231, 234))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Where), Span::new(235, 240))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::While), Span::new(241, 246))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::With), Span::new(247, 251))),
-            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Yield), Span::new(252, 257))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Pub), Span::new(191, 194))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Raise), Span::new(195, 200))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Ref), Span::new(201, 204))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Return), Span::new(205, 211))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::True), Span::new(212, 216))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Try), Span::new(217, 220))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Typealias), Span::new(221, 231))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Val), Span::new(232, 235))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Var), Span::new(236, 239))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Where), Span::new(240, 245))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::While), Span::new(246, 251))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::With), Span::new(252, 256))),
+            TokenResult::Ok(Token::new(TokenKind::Keyword(Keyword::Yield), Span::new(257, 262))),
         ]
     );
 }
@@ -1756,6 +1759,7 @@ fn can_tokenize_imaginary_numbers() {
     );
 }
 
+// TODO(appcypher): Break it up and make it minimal and write an exhaustive proptest instead.
 #[test]
 fn can_tokenize_operators() {
     let result_valid_operators = get_tokens("+ - * / // % << >> & | ^ ~ < > <= >= == != ** ² √");
@@ -1800,6 +1804,7 @@ fn can_tokenize_operators() {
     );
 }
 
+// TODO(appcypher): Break it up and make it minimal and write an exhaustive proptest instead.
 #[test]
 fn can_tokenize_delimiters() {
     let result_valid_operators = get_tokens("( ) [ ] { } , : . ; @ = -> += -= *= /= //= %= @= &= |= ^= >>= <<=");

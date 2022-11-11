@@ -1,5 +1,6 @@
 use proptest::{collection::vec, strategy::Strategy};
 
+// TODO(appcypher): Move proptests into the projects.
 fn identifier() -> impl Strategy<Value = String> {
     r"[A-Za-z_][A-Za-z0-9_]*"
 }

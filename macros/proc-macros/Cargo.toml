@@ -8,3 +8,9 @@ path = "src/lib.rs"
 proc-macro = true
 
 [dependencies]
+lru = "0.8.1"
+proc-macro2 = "1.0.47"
+quote = "1.0.21"
+raccoon-macro-lib = { path = "../lib" }
+sha3 = "0.10.6"
+syn = { version = "1.0.103", features = ["full"] }

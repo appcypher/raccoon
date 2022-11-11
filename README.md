@@ -6,7 +6,7 @@
 
 <h1 align="center">Raccoon</h1>
 
-`raccoon` is a statically-typed language that borrows syntax from Python and adopts some Rust philosophies resulting in a language that is both easy to learn and powerful to use.
+`raccoon` is a statically-typed language that borrows syntax from Python but adopts some Rust philosophies resulting in a language that is both easy to learn and powerful to use.
 
 `raccoon` encourages the rapid prototyping spirit of Python with little to no compromise on the performance and safety that Rust provides.
 
@@ -18,34 +18,23 @@ class Person:
     Class for creating a person.
     """
 
-    mut population = 0
-
     def init(self, name, age):
         """
         Creates a new person
         """
-
         self.name = name
         self.age = age
 
-        Person.population += 1
-
-    def drop(self):
-        """
-        Decrement population
-        """
-
-        Self.population -= 1
-
-    def debug(self, f):
+    def debug(self, fmt):
         """
         Create a string representation of object
         """
-
-        f.debug_class("Person")
+        fmt.debug_class("Person")
             .field("name", self.name)
             .field("age", self.age)
+            .finish()
 
 jane = Person("Jane Doe", 23)
+
 print(f"jane = {jane}")
 ```
