@@ -1,0 +1,15 @@
+[package]
+name = "raccoon-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+lru = "0.8"
+raccoon-macros-inner = { path = "inner/", version = "0.1.0" }
+sha3 = "0.10.6"
+
+[dev-dependencies]
+rand = "0.8.5"

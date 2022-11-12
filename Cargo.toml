@@ -14,7 +14,7 @@ clap = { version = "3.1.0", features = ["derive"] }
 members = [
 	"bench",
 	"compiler",
-	"macros/*",
+	"macros",
 	"proptests"
 ]
 

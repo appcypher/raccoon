@@ -50,12 +50,12 @@ abstract class Giver:
 @impl(Giver)
 class StringGiver:
     def gift(self) -> String:
-        return "string gift" # Has an String return type
+        "string gift" # Has an String return type
 
 @impl(Giver)
 class IntGiver:
     def gift(self) -> int:
-        return 8080 # Has an int return type
+        8080 # Has an int return type
 ```
 
 Even though not explicitly stated, `IntGiver` and `StringGiver` implements the `Giver` abstract class.
@@ -341,7 +341,7 @@ Methods and fields accessed on an intersection type must apply to all the varian
 ```py
 enum class Option[T]:
     @no_wrap
-    Some(T)
+    Some(t: T)
     None
 
     def unwrap(self):
@@ -351,7 +351,7 @@ enum class Option[T]:
 ```py
 enum class Option[T]:
     @no_wrap
-    Some(T)
+    Some(t: T)
     None
 
     def unwrap(self) -> T:
@@ -650,7 +650,7 @@ Here, `Thread.spawn` instantiation contains a lambda that captures its environme
 
 ```py
 class Thread:
-    @where(F: Send & () -> ())
+    @where(F: () -> () * Send)
     def spawn(fn: F):
         pass
 ```
@@ -663,7 +663,7 @@ Inspired by Rust, Raccoon allows multiple implementations of a class as long the
 @base(Bar)
 class Foo:
     def init(self):
-        self.__super__()
+        pass
 
     def bar(self):
         print("Foo.bar", self.bar)
@@ -733,7 +733,7 @@ abstract class AsyncIterator[T]:
 
 enum class Poll[T]:
     @no_wrap
-    Ready(T),
+    Ready(t: T),
     Pending
 ```
 
@@ -773,10 +773,6 @@ for i in ListIter([1, 2, 3, 4, 5]):
     print(i)
 ```
 
-# Futures, Streams, Generators
-
-These are implemented as state machine like in Rust.
-
 # Exceptions vs Result Enums
 
 Raccoon supports execeptions just because users coming from Python will have the presumption that Raccoon should have it.
@@ -787,7 +783,7 @@ It also makes it possible to statically infer exceptions properties in the codeb
 @where(E: Error)
 enum class Result[T, E = Error]:
     @no_wrap
-    Ok(T)
+    Ok(t: T)
     Err(E)
 ```
 

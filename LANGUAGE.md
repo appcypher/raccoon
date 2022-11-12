@@ -18,18 +18,6 @@
       array
   )
 
-  map(
-      def (x):
-          if x == 1: 0
-          else: 5
-      , array
-  )
-
-  map(def (x):
-      if x == 1: 0
-      else: 5
-  , array)
-
   map((
       def (x):
           if x == 1: 0
@@ -111,8 +99,8 @@
   # Generics
   @impl(Sequence).where(N: int)
   enum class TinyList[T, const N]:
-      Inline([T, N])
-      Heap([T])
+      Inline(t: [T, N])
+      Heap(t: [T])
   ```
 
   You can omit the type of a function
@@ -213,23 +201,24 @@
 
   ```py
   @macro
-  def test(attr: Attr[MyClass]) -> Tree:
+  def test(path: Path, attr: Attr[MyClass]) -> Tree:
       # ...
       pass
 
   @macro
-  def test(block: Block[Tree]) -> Tree:
+  def test(path: Path, block: Block[Tree]) -> Tree:
       # ...
       pass
 
   @macro
-  def test(attr: Attr[MyClass], block: Block[Tokens[MyClassOther]]) -> Tree:
+  def test(path: Path, attr: Attr[MyClass], block: Block[Tokens[MyClassOther]]) -> Tree:
       # ...
       pass
 
   @macro
-  def test(attr: Attr[MyClass], fn: Fn) -> Tree:
+  def test(path: Path, attr: Attr[MyClass], fn: Fn) -> Tree:
       Fn {
+          attrs,
           vis,
           name,
           sig,
@@ -238,12 +227,15 @@
 
       args = sig.args
       return_type = sig.return_type
-      name_str = name.to_string()
+      renamed = @format_ident(f"__mangled_{name}")
 
       @quote:
-          ::vis def ::name ( ::args ) -> ::return_type:
-              print(f"Inserted by @test macro in function {::name_str}")
-              ::body
+          $( attrs )*
+          $vis def $name ( $( args )* ) -> $return_type:
+              $body
+
+          $vis def $renamed ( $( args )* ) -> $return_type:
+              $body
   ```
 
   There are multiple ways of using a macro depending on the type of the argument.
@@ -333,19 +325,18 @@
   ```py
   pub enum class Option[T]:
       @no_wrap
-      Some(T)
+      Some(t: T)
       None
   ```
 
   So we don't have to wrap `result` in `Some` here
 
   ```py
-  def get_age(self) -> Result[u8]:
+  def get_age(self) -> u8!:
       result = self.some_calc()
       if result < 0:
           raise Error("Age cannot be negative")
-      else:
-          result
+      result
   ```
 
   The same applies here
@@ -397,15 +388,7 @@
 - Additional reserved keywords
 
   ```py
-  Self, union, enum, dyn, new, abstract, data, const, ref, ptr, val, match, let, mut, var, interface, where, macro, type, pub
-  ```
-
-- UFCS
-
-  ```py
-  ls = [1, 2, 3, 4]
-  len(ls)
-  ls.len()
+  Self, union, enum, dyn, new, abstract, data, const, ref, ptr, val, match, let, mut, var, where, macro, type, pub
   ```
 
 - `mut` keyword
@@ -470,14 +453,13 @@
 
   ```py
   match x:
-      case Class { field1, .. }: field1
-      case DataClass (field1, **z) : field1 # Like a NamedTuple
-      case EnumVariant { field1, .. }: field1
-      case EnumVariant(field1, _): field1
+      case Class { x, .. }: x
+      case DataClass (x, **z) : x # (positional)
+      case EnumVariant(x, **z): x # (positional)
       case EnumVariant: 0
-      case [x, 5 as y, z]: y # List
-      case (x, 5 as y, 10, *z): x # Tuple
-      case (x, 5 as y, 10, **z): x # NamedTuple
+      case [x, 5 as y, z]: y # List (positional)
+      case (x, 5 as y, 10, *z): x # Tuple (positional)
+      case (x, 5 as y, 10, **z): x # NamedTuple (positional)
       case { "x", "y" as y,  *z}: x # Set
       case { "x", "y" as y, **z}: x # Dict
       case 10 | 11 as x: x
@@ -679,14 +661,14 @@
 
   ```py
   enum class Data:
-      Inline([u8])
-      External { addr: String, port: u16 }
+      Inline(val: [u8])
+      External(addr: String, port: u16)
   ```
 
   ```py
   enum class Option[T]:
       @no_wrap
-      Some(T)
+      Some(t: T)
       None
 
   identity: Option[String] = Option.None
@@ -783,13 +765,37 @@
 - Unified function call syntax
 
   ```py
+  data class Person(name, age):
+    def get_name(p: Person) -> String:
+        p.name
+
+  def greet(self, name):
+      print(f"Hello, {name}!")
+
   p = Person("John", 50)
+  ```
 
-  def get_name(p: Person) -> String:
-      p.name
+  ```py
+  get_name(p)
+  p.get_name()
+  ```
 
-  get_name(p) # "John"
-  p.get_name() # "John"
+  ```py
+  greet(p)
+  p.greet()
+  ```
+
+- Unlike Python, instance cannot call class methods with the dot notation.
+
+  ```py
+  class TestSetup:
+      def initialize():
+          # ...
+          pass
+
+  t = Test()
+  TestSetup.initialize() # Okay
+  t.initialize() # Compile error
   ```
 
 - Global items
@@ -804,26 +810,22 @@
   global GLOBAL_RUNTIME: Futuro = default()
   ```
 
-
 - Return type polymorphism
 
   ```py
-  abstract class Default:
-      def default() -> Self
-
   @impl(Default)
   class String:
-      def default() -> String:
-          ""
+      def default(): ""
 
   @impl(Default)
   class int:
-      def default() -> int:
-          0
-  ```
+      def default(): 0
 
-  ```py
-  default_string: String = Default.default()
+  def default[T]() -> T:
+      T.default()
+
+  name: String = default()
+  age: int = default()
   ```
 
 - Higher kinded types [In Progress]
